@@ -12,6 +12,7 @@ RUN  apt update \
      && pip install -r requirements.txt
 
 COPY src/etl .
+COPY docker-entrypoint.sh .
 
 RUN chmod +x docker-entrypoint.sh
 
