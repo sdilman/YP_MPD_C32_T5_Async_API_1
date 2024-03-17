@@ -9,7 +9,8 @@ COPY requirements.txt requirements.txt
 
 RUN  apt update \
      && pip install --upgrade pip \
-     && pip install -r requirements.txt
+     && pip install -r requirements.txt \
+     && apt install -y vim
 
 COPY src/etl .
 COPY docker-entrypoint.sh .
