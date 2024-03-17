@@ -9,7 +9,7 @@ class FilmWork:
     description: str
     imdb_rating: float
     persons: list[dict]
-    genre: list[str]
+    genres: list[str]
     actors_names: list = field(init=False)
     writers_names: list = field(init=False)
     directors_names: list = field(init=False)
