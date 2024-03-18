@@ -1,18 +1,10 @@
 from fastapi import APIRouter
-from pydantic import BaseModel
+from models.films import Film
+
 
 # Объект router, в котором регистрируем обработчики
 router = APIRouter()
 
-# FastAPI в качестве моделей использует библиотеку pydantic
-# https://pydantic-docs.helpmanual.io
-# У неё есть встроенные механизмы валидации, сериализации и десериализации
-# Также она основана на дата-классах
-
-# Модель ответа API
-class Film(BaseModel):
-    id: str
-    title: str
 
 # С помощью декоратора регистрируем обработчик film_details
 # На обработку запросов по адресу <some_prefix>/some_id
