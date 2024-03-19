@@ -48,7 +48,7 @@ schema = {
       "imdb_rating": {
         "type": "float"
       },
-      "genre": {
+      "genres": {
         "type": "keyword"
       },
       "title": {
