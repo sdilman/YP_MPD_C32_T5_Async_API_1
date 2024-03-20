@@ -6,7 +6,7 @@ services:
     restart: unless-stopped
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./src/etl:/docker-entrypoint-initdb.d
+      - ./etl:/docker-entrypoint-initdb.d
     env_file:
       - .env
     healthcheck:
@@ -16,9 +16,25 @@ services:
       retries: 5
 
   etl:
-    build: .
+    build:
+      context: ./
+      dockerfile: ./etl/Dockerfile
     env_file:
       - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+
+  app:
+    build:
+      context: ./
+      dockerfile: ./src/Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -43,6 +59,71 @@ services:
       interval: 1s
       timeout: 5s
       retries: 20
+
+  redis-node-1:
+    image: redis:latest
+    expose:
+      - "7000"
+    hostname: redis-node-1
+    volumes:
+      - ./redis_configs/7000:/redis
+    command: redis-server /redis/redis.conf
+
+  redis-node-2:
+    image: redis:latest
+    expose:
+      - "7001"
+    hostname: redis-node-2
+    volumes:
+      - ./redis_configs/7001:/redis
+    command: redis-server /redis/redis.conf
+
+  redis-node-3:
+    image: redis:latest
+    expose:
+      - "7002"
+    hostname: redis-node-3
+    volumes:
+      - ./redis_configs/7002:/redis
+    command: redis-server /redis/redis.conf
+
+  redis-node-4:
+    image: redis:latest
+    expose:
+      - "7003"
+    hostname: redis-node-4
+    volumes:
+      - ./redis_configs/7003:/redis
+    command: redis-server /redis/redis.conf
+
+  redis-node-5:
+    image: redis:latest
+    expose:
+      - "7004"
+    hostname: redis-node-5
+    volumes:
+      - ./redis_configs/7004:/redis
+    command: redis-server /redis/redis.conf
+
+  redis-node-6:
+    image: redis:latest
+    expose:
+      - "7005"
+    hostname: redis-node-6
+    volumes:
+      - ./redis_configs/7005:/redis
+    command: redis-server /redis/redis.conf
+
+  redis-cluster-creator:
+    image: redis:latest
+    command: redis-cli -p 7000 --cluster create redis-node-1:7000 redis-node-2:7001 redis-node-3:7002 redis-node-4:7003 redis-node-5:7004 redis-node-6:7005 --cluster-replicas 1 --cluster-yes
+    depends_on:
+      - redis-node-1
+      - redis-node-2
+      - redis-node-3
+      - redis-node-4
+      - redis-node-5
+      - redis-node-6
 
 volumes:
   postgres-data:

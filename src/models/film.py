@@ -1,7 +1,7 @@
 import orjson
-
 # Используем pydantic для упрощения работы при перегонке данных из json в объекты
 from pydantic import BaseModel
+
 
 def orjson_dumps(v, *, default):
     # orjson.dumps возвращает bytes, а pydantic требует unicode, поэтому декодируем

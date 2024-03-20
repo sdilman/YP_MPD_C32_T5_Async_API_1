@@ -1,8 +1,8 @@
-from typing import Optional
-from redis.asyncio import Redis
+from redis.cluster import RedisCluster
 
-redis: Optional[Redis] = None
+redis: RedisCluster | None = None
+
 
 # Функция понадобится при внедрении зависимостей
-async def get_redis() -> Redis:
+async def get_redis() -> RedisCluster:
     return redis

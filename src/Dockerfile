@@ -1,6 +1,6 @@
 FROM python:3.12-bullseye
 
-WORKDIR /opt/etl
+WORKDIR /opt
 
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
@@ -12,9 +12,6 @@ RUN  apt update \
      && pip install -r requirements.txt \
      && apt install -y vim
 
-COPY src/etl .
-COPY docker-entrypoint.sh .
+COPY ./src .
 
-RUN chmod +x docker-entrypoint.sh
-
-ENTRYPOINT ["./docker-entrypoint.sh"]
+ENTRYPOINT ["python", "main.py"]
