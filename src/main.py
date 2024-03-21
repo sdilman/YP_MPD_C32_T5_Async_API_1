@@ -14,11 +14,11 @@ from db import elastic, redis
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    redis.rc = RedisCluster(host=config.REDIS_HOST, port=config.REDIS_PORT)
-    print(redis.rc.get_nodes())
+    # redis.rc = RedisCluster(host=config.REDIS_HOST, port=config.REDIS_PORT)
+    # print(redis.rc.get_nodes())
     await elastic.es.info()
     yield
-    redis.rc.close()
+    # redis.rc.close()
     elastic.es.close()
 
 
