@@ -7,7 +7,6 @@ from services.film import FilmService, get_film_service
 
 from models.movies import Film
 
-
 router = APIRouter()
 
 
