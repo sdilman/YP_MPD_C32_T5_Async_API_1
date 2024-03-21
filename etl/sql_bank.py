@@ -27,6 +27,12 @@ SQL_PERSONS_WHERE_MOVIE = f"SELECT p.id " \
                     f"WHERE pfw.film_work_id IN %s " \
                     f"ORDER BY p.modified "
 
+SQL_GENRES_WHERE_MOVIE = f"SELECT g.id " \
+                    f"FROM content.genre g " \
+                    f"LEFT JOIN content.genre_film_work gfw ON gfw.genre_id = g.id " \
+                    f"WHERE gfw.film_work_id IN %s " \
+                    f"ORDER BY g.modified "
+
 SQL_LAST_INSERTED_TIME_FILMWORKS = f"SELECT id, modified " \
                                    f"FROM content.film_work " \
                                    f"WHERE modified > %s " \
@@ -74,3 +80,19 @@ ALL_MODIFIED_PERSONS = f"SELECT " \
                       f"LEFT JOIN content.film_work fw ON fw.id = pfw.film_work_id " \
                       f"WHERE p.id IN ({SQL_PERSONS_WHERE_MOVIE}) OR p.id IN %s " \
                       f"GROUP BY p.id;"
+
+ALL_MODIFIED_GENRES = f"SELECT " \
+                      f"g.id as g_id, " \
+                      f"g.name, " \
+                      f"COALESCE (" \
+                      f"json_agg(" \
+                      f"DISTINCT jsonb_build_object(" \
+                          f"'filmwork_id', fw.id)" \
+                          f") " \
+                          f"FILTER (WHERE fw.id is not null), " \
+                          f"'[]') as films " \
+                      f"FROM content.genre g " \
+                      f"LEFT JOIN content.genre_film_work gfw ON gfw.genre_id = g.id " \
+                      f"LEFT JOIN content.film_work fw ON fw.id = gfw.film_work_id " \
+                      f"WHERE g.id IN ({SQL_GENRES_WHERE_MOVIE}) OR g.id IN %s " \
+                      f"GROUP BY g.id;"

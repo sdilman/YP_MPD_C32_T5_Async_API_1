@@ -57,9 +57,9 @@ services:
           "CMD-SHELL",
           "curl --fail http://localhost:9200 || exit 1",
         ]
-      interval: 1s
-      timeout: 5s
-      retries: 20
+      interval: 2s
+      timeout: 10s
+      retries: 50
 
   # redis-node-1:
   #   image: redis:latest
