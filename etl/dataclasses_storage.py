@@ -34,3 +34,10 @@ class FilmWork:
                 self.directors_names.append(person["person_name"])
                 person_dict = {"id": person["person_id"], "name": person["person_name"]}
                 self.directors.append(person_dict)
+
+
+@dataclass
+class Person:
+    id: uuid.UUID
+    full_name: str
+    films: list[dict]

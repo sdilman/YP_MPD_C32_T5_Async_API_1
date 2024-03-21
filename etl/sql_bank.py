@@ -10,16 +10,22 @@ SQL_LAST_INSERTED_GENRES = f"SELECT id, modified " \
                            f"ORDER BY modified " \
                            f"LIMIT %s;"
 
-SQL_PERSON_MOVIES = f"SELECT fw.id " \
+SQL_MOVIES_WHERE_PERSON = f"SELECT fw.id " \
                     f"FROM content.film_work fw " \
                     f"LEFT JOIN content.person_film_work pfw ON pfw.film_work_id = fw.id " \
                     f"WHERE pfw.person_id IN %s " \
                     f"ORDER BY fw.modified "
 
-SQL_GENRES_MOVIES = f"SELECT fw.id " \
+SQL_MOVIES_WHERE_GENRE = f"SELECT fw.id " \
                     f"FROM content.film_work fw " \
                     f"LEFT JOIN content.genre_film_work gfw ON gfw.film_work_id = fw.id " \
                     f"WHERE gfw.genre_id IN %s "
+
+SQL_PERSONS_WHERE_MOVIE = f"SELECT p.id " \
+                    f"FROM content.person fw " \
+                    f"LEFT JOIN content.person_film_work pfw ON pfw.person_id = p.id " \
+                    f"WHERE pfw.film_work_id IN %s " \
+                    f"ORDER BY fw.modified "
 
 SQL_LAST_INSERTED_TIME_FILMWORKS = f"SELECT id, modified " \
                                    f"FROM content.film_work " \
@@ -27,7 +33,7 @@ SQL_LAST_INSERTED_TIME_FILMWORKS = f"SELECT id, modified " \
                                    f"ORDER BY modified " \
                                    f"LIMIT %s"
 
-UNION_PERSON_GENRES = f"({SQL_PERSON_MOVIES}) UNION ({SQL_GENRES_MOVIES})"
+UNION_PERSON_GENRES = f"({SQL_MOVIES_WHERE_PERSON}) UNION ({SQL_MOVIES_WHERE_GENRE})"
 
 ALL_MODIFIED_MOVIES = f"SELECT " \
                       f"fw.id as fw_id, " \
@@ -51,3 +57,20 @@ ALL_MODIFIED_MOVIES = f"SELECT " \
                       f"LEFT JOIN content.genre g ON g.id = gfw.genre_id " \
                       f"WHERE fw.id IN ({UNION_PERSON_GENRES}) OR fw.id IN %s " \
                       f"GROUP BY fw.id;"
+
+ALL_MODIFIED_PERSONS = f"SELECT " \
+                      f"p.id as p_id, " \
+                      f"p.full_name, " \
+                      f"COALESCE (" \
+                      f"json_agg(" \
+                      f"DISTINCT jsonb_build_object(" \
+                          f"'filmwork_id', fw.id, " \
+                          f"'person_role', pfw.role)" \
+                          f") " \
+                          f"FILTER (WHERE fw.id is not null), " \
+                          f"'[]') as films " \
+                      f"FROM content.person p " \
+                      f"LEFT JOIN content.person_film_work pfw ON pfw.person_id = p.id " \
+                      f"LEFT JOIN content.film_work fw ON fw.id = pfw.film_work_id " \
+                      f"WHERE p.id IN ({SQL_PERSONS_WHERE_MOVIE}) OR p.id IN %s " \
+                      f"GROUP BY p.id;"

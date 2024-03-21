@@ -12,8 +12,8 @@ from elasticsearch.helpers import bulk
 from psycopg2.extensions import connection as _connection
 from psycopg2.extras import DictCursor
 
-from dataclasses_storage import FilmWork
-from elastic_schema import schema
+from dataclasses_storage import FilmWork, Person
+from elastic_schema import schema_movies, schema_persons
 from sql_bank import *
 from state import JsonFileStorage, State
 from config import settings
@@ -57,13 +57,19 @@ class PostgresExtractor:
         last_input_filmworks, filmworks_id = extract_timer_and_ids(data_filmworks, timer_filmworks)
 
         cursor.execute(ALL_MODIFIED_MOVIES, (persons_id, genres_id, filmworks_id))
-        data_from_postgres = cursor.fetchall()
+        movies_from_postgres = cursor.fetchall()
+
+        cursor.execute(ALL_MODIFIED_PERSONS, (filmworks_id, persons_id))
+        persons_from_postgres = cursor.fetchall()
+
+        data_from_postgres = [movies_from_postgres, persons_from_postgres]
+
         return data_from_postgres, [last_input_genres, last_input_persons, last_input_filmworks]
 
 
 class DataTransform:
-    def data_from_postgres_to_elastic_format(self, rows: list):
-        """Подготовка данных для вставки в ElasticSearch"""
+    def movies_from_postgres_to_elastic(self, rows: list):
+        """Подготовка фильмов для вставки в ElasticSearch"""
 
         def removekey(d: dict, key: str):
             del d[key]
@@ -72,21 +78,26 @@ class DataTransform:
         data = [removekey(asdict(FilmWork(*movie)), "persons") for movie in rows]
         return data
 
+    def persons_from_postgres_to_elastic(self, rows: list):
+        """Подготовка персон для вставки в ElasticSearch"""
+        data = [asdict(Person(*person)) for person in rows]
+        return data
+
 
 class ElasticsearchLoader:
-    def upload_to_elastic(self, all_movies_elastic: list):
+    def upload_to_elastic(self, data_for_elastic: list, index_name: str):
         """Вставка данных в ElasticSearch"""
         with Elasticsearch(f'http://{settings.ELASTIC_HOST}:{settings.ELASTIC_PORT}') as es:
             actions = [
                 {
-                    "_index": "movies",
-                    "_id": movie["id"],
-                    "_source": movie,
+                    "_index": index_name,
+                    "_id": data["id"],
+                    "_source": data,
                     "doc_as_upsert": True
-                } for movie in all_movies_elastic
+                } for data in data_for_elastic
             ]
             bulk(es, actions)
-            logging.info(f"В ElasticSearch обновлены {len(all_movies_elastic)} фильмов")
+            logging.info(f"В ElasticSearch обновлены {len(data_for_elastic)} данных в индексе {index_name}")
 
 
 def postgres_to_elastic(pg_conn: _connection):
@@ -100,10 +111,12 @@ def postgres_to_elastic(pg_conn: _connection):
                                                                              timer_persons,
                                                                              timer_filmworks)
         transfer = DataTransform()
-        all_movies_elastic = transfer.data_from_postgres_to_elastic_format(data_from_postgres)
-        if all_movies_elastic:
+        all_movies_elastic = transfer.movies_from_postgres_to_elastic(data_from_postgres[0])
+        all_persons_elastic = transfer.persons_from_postgres_to_elastic(data_from_postgres[1])
+        if all_movies_elastic or all_persons_elastic:
             loader = ElasticsearchLoader()
-            loader.upload_to_elastic(all_movies_elastic)
+            loader.upload_to_elastic(all_movies_elastic, 'movies')
+            loader.upload_to_elastic(all_persons_elastic, 'persons')
             state.set_state("timer_genres", timers[0])
             state.set_state("timer_persons", timers[1])
             state.set_state("timer_filmworks", timers[2])
@@ -127,6 +140,13 @@ def main():
     with closing(psycopg2.connect(**settings.dsl, cursor_factory=DictCursor)) as pg_conn:
         postgres_to_elastic(pg_conn)
 
+def create_schema(index: str, body: str):
+    try:
+        es.indices.create(index=index, body=body)
+        logging.info(f"Индекс {index} создан")
+    except:
+        logging.info(f"Индекс {index} уже существует")
+
 
 if __name__ == "__main__":
     storage = JsonFileStorage("state.json")
@@ -135,11 +155,8 @@ if __name__ == "__main__":
     state.set_state("timer_persons", settings.TIMER_PERSONS)
     state.set_state("timer_filmworks", settings.TIMER_FILMWORKS)
     es = Elasticsearch(f'http://{settings.ELASTIC_HOST}:{settings.ELASTIC_PORT}')
-    try:
-        es.indices.create(index="movies", body=schema)
-        logging.info('Индекс movies создан')
-    except:
-        logging.info('Индекс movies уже существует')
+    create_schema("movies", schema_movies)
+    create_schema("persons", schema_persons)
     es.transport.close()
 
     main()
