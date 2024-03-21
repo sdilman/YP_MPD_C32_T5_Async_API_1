@@ -41,3 +41,10 @@ class Person:
     id: uuid.UUID
     full_name: str
     films: list[dict]
+
+
+@dataclass
+class Genre:
+    id: uuid.UUID
+    name: str
+    films: list[dict]

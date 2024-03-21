@@ -12,8 +12,8 @@ from elasticsearch.helpers import bulk
 from psycopg2.extensions import connection as _connection
 from psycopg2.extras import DictCursor
 
-from dataclasses_storage import FilmWork, Person
-from elastic_schema import schema_movies, schema_persons
+from dataclasses_storage import FilmWork, Person, Genre
+from elastic_schema import schema_movies, schema_persons, schema_genres
 from sql_bank import *
 from state import JsonFileStorage, State
 from config import settings
@@ -62,7 +62,10 @@ class PostgresExtractor:
         cursor.execute(ALL_MODIFIED_PERSONS, (filmworks_id, persons_id))
         persons_from_postgres = cursor.fetchall()
 
-        data_from_postgres = [movies_from_postgres, persons_from_postgres]
+        cursor.execute(ALL_MODIFIED_GENRES, (filmworks_id, genres_id))
+        genres_from_postgres = cursor.fetchall()
+
+        data_from_postgres = [movies_from_postgres, persons_from_postgres, genres_from_postgres]
 
         return data_from_postgres, [last_input_genres, last_input_persons, last_input_filmworks]
 
@@ -81,6 +84,11 @@ class DataTransform:
     def persons_from_postgres_to_elastic(self, rows: list):
         """Подготовка персон для вставки в ElasticSearch"""
         data = [asdict(Person(*person)) for person in rows]
+        return data
+    
+    def genres_from_postgres_to_elastic(self, rows: list):
+        """Подготовка жанров для вставки в ElasticSearch"""
+        data = [asdict(Genre(*genre)) for genre in rows]
         return data
 
 
@@ -113,10 +121,12 @@ def postgres_to_elastic(pg_conn: _connection):
         transfer = DataTransform()
         all_movies_elastic = transfer.movies_from_postgres_to_elastic(data_from_postgres[0])
         all_persons_elastic = transfer.persons_from_postgres_to_elastic(data_from_postgres[1])
-        if all_movies_elastic or all_persons_elastic:
+        all_genres_elastic = transfer.genres_from_postgres_to_elastic(data_from_postgres[2])
+        if all_movies_elastic or all_persons_elastic or all_genres_elastic:
             loader = ElasticsearchLoader()
             loader.upload_to_elastic(all_movies_elastic, 'movies')
             loader.upload_to_elastic(all_persons_elastic, 'persons')
+            loader.upload_to_elastic(all_genres_elastic, 'genres')
             state.set_state("timer_genres", timers[0])
             state.set_state("timer_persons", timers[1])
             state.set_state("timer_filmworks", timers[2])
@@ -157,6 +167,7 @@ if __name__ == "__main__":
     es = Elasticsearch(f'http://{settings.ELASTIC_HOST}:{settings.ELASTIC_PORT}')
     create_schema("movies", schema_movies)
     create_schema("persons", schema_persons)
+    create_schema("genres", schema_genres)
     es.transport.close()
 
     main()
