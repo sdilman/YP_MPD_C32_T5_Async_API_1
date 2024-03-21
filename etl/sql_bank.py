@@ -25,7 +25,7 @@ SQL_PERSONS_WHERE_MOVIE = f"SELECT p.id " \
                     f"FROM content.person p " \
                     f"LEFT JOIN content.person_film_work pfw ON pfw.person_id = p.id " \
                     f"WHERE pfw.film_work_id IN %s " \
-                    f"ORDER BY fw.modified "
+                    f"ORDER BY p.modified "
 
 SQL_LAST_INSERTED_TIME_FILMWORKS = f"SELECT id, modified " \
                                    f"FROM content.film_work " \
