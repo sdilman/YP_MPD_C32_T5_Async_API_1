@@ -22,7 +22,7 @@ SQL_MOVIES_WHERE_GENRE = f"SELECT fw.id " \
                     f"WHERE gfw.genre_id IN %s "
 
 SQL_PERSONS_WHERE_MOVIE = f"SELECT p.id " \
-                    f"FROM content.person fw " \
+                    f"FROM content.person p " \
                     f"LEFT JOIN content.person_film_work pfw ON pfw.person_id = p.id " \
                     f"WHERE pfw.film_work_id IN %s " \
                     f"ORDER BY fw.modified "
