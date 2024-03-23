@@ -15,10 +15,34 @@ services:
       timeout: 5s
       retries: 5
 
-  etl:
+  etl-movies:
     build:
       context: ./
-      dockerfile: ./etl/Dockerfile
+      dockerfile: ./etl/Dockerfile.movies
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+
+  etl-persons:
+    build:
+      context: ./
+      dockerfile: ./etl/Dockerfile.persons
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+
+  etl-genres:
+    build:
+      context: ./
+      dockerfile: ./etl/Dockerfile.genres
     env_file:
       - .env
     depends_on:

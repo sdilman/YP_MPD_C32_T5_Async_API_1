@@ -13,8 +13,5 @@ RUN  apt update \
      && apt install -y vim
 
 COPY ./etl .
-#COPY docker-entrypoint.sh .
-#
-#RUN chmod +x docker-entrypoint.sh
 
-ENTRYPOINT ["python", "psql_to_elastic.py"]
+ENTRYPOINT ["python", "psql_to_elastic.py", "-o", "genres"]
