@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import Optional
+from typing import Optional, List
 
 from elasticsearch import AsyncElasticsearch, NotFoundError
 from fastapi import Depends
@@ -29,9 +29,9 @@ class FilmService:
         #         return None
         #     # Сохраняем фильм  в кеш
         #     await self._put_film_to_cache(film)
-
+        #
         # return film
-    
+
         film = await self._get_film_from_elastic(film_id)
         return film
 
@@ -41,6 +41,27 @@ class FilmService:
         except NotFoundError:
             return None
         return Film(**doc['_source'])
+
+    async def get(self, genre: str = None):
+        films = await self._get_films_from_elastic(genre)
+        return films
+
+    async def _get_films_from_elastic(self, genre: str = None):
+        try:
+            if not genre:
+                docs = await self.elastic.search(index='movies')
+            else:
+                query = {
+                    "query": {
+                        "match": {
+                            "genres": genre
+                        }
+                    }
+                }
+                docs = await self.elastic.search(index='movies', body=query)
+        except NotFoundError:
+            return None
+        return [Film(**doc['_source']) for doc in docs['hits']['hits']]
 
     async def _film_from_cache(self, film_id: str) -> Optional[Film]:
         # Пытаемся получить данные о фильме из кеша, используя команду get
