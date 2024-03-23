@@ -210,7 +210,7 @@ def backoff_hdlr(details):
     logging.info(f"backoff_hdlr, {details}")
 
 
-@backoff.on_exception(backoff.expo, (
+backoff_etl = backoff.on_exception(backoff.expo, (
                           psycopg2.OperationalError,
                           psycopg2.InterfaceError,
                           ElasticConnectionError
@@ -219,16 +219,19 @@ def backoff_hdlr(details):
                       on_backoff=backoff_hdlr)
 
 
+@backoff_etl
 def run_etl_movies():
     with closing(psycopg2.connect(**settings.dsl, cursor_factory=DictCursor)) as pg_conn:
         postgres_to_elastic_movies(pg_conn)
 
 
+@backoff_etl
 def run_etl_persons():
     with closing(psycopg2.connect(**settings.dsl, cursor_factory=DictCursor)) as pg_conn:
         postgres_to_elastic_persons(pg_conn)
 
 
+@backoff_etl
 def run_etl_genres():
     with closing(psycopg2.connect(**settings.dsl, cursor_factory=DictCursor)) as pg_conn:
         postgres_to_elastic_genres(pg_conn)
