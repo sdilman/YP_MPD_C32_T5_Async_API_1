@@ -42,23 +42,32 @@ class FilmService:
             return None
         return Film(**doc['_source'])
 
-    async def get(self, genre: str = None):
-        films = await self._get_films_from_elastic(genre)
+    async def get(self, genre: str = None, title: str = None):
+        films = await self._get_films_from_elastic(genre, title)
         return films
 
-    async def _get_films_from_elastic(self, genre: str = None):
+    async def _get_films_from_elastic(self, genre: str = None, title: str = None):
         try:
-            if not genre:
-                docs = await self.elastic.search(index='movies')
-            else:
+            if genre or title:
+                cond = []
+                if genre:
+                    cond.append(
+                        { "match": { "genres": genre } }
+                    )
+                if title:
+                    cond.append(
+                        { "match": { "title": title } }
+                    )
                 query = {
                     "query": {
-                        "match": {
-                            "genres": genre
+                        "bool": {
+                            "must": cond
+                            }
                         }
                     }
-                }
                 docs = await self.elastic.search(index='movies', body=query)
+            else:
+                docs = await self.elastic.search(index='movies')  
         except NotFoundError:
             return None
         return [Film(**doc['_source']) for doc in docs['hits']['hits']]

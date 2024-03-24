@@ -11,7 +11,6 @@ from typing import List
 router = APIRouter()
 
 
-# Внедряем FilmService с помощью Depends(get_film_service)
 @router.get('/{film_id}', response_model=Film)
 async def film_details(film_id: str, film_service: FilmService = Depends(get_film_service)) -> Film:
     film = await film_service.get_by_id(film_id)
@@ -24,17 +23,16 @@ async def film_details(film_id: str, film_service: FilmService = Depends(get_fil
 async def film_details(
         sort: str = Query(None),
         genre: str = Query(None),
+        query: str = Query(None),
         film_service: FilmService = Depends(get_film_service)
     ) -> Film:
-    films = await film_service.get(genre=genre)
+    films = await film_service.get(genre=genre, title=query)
     if not films:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail='film not found')
-    
     if sort:
         reverse_sort = False
         if sort.startswith('-'):
             reverse_sort = True
             sort = sort[1:]  # Убираем знак минуса
         films = sorted(films, key=lambda x: getattr(x, sort), reverse=reverse_sort)
-
     return films
