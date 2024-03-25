@@ -7,18 +7,18 @@ from redis.asyncio import Redis
 
 from db.elastic import get_elastic
 from db.redis import get_redis
-from models.movies import Person, FilmsWithPerson
+from models.movies import Genre
 
 FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 
 
-class PersonService:
+class GenreService:
     def __init__(self, redis: Redis, elastic: AsyncElasticsearch):
         self.redis = redis
         self.elastic = elastic
 
     # get_by_id возвращает объект фильма. Он опционален, так как фильм может отсутствовать в базе
-    async def get_by_id(self, person_id: str) -> Person | None:
+    async def get_by_id(self, genre_id: str) -> Genre | None:
         # # Пытаемся получить данные из кеша, потому что оно работает быстрее
         # film = await self._film_from_cache(film_id)
         # if not film:
@@ -32,48 +32,42 @@ class PersonService:
 
         # return film
 
-        person = await self._get_person_from_elastic(person_id)
-        return person
+        genre = await self._get_genre_from_elastic(genre_id)
+        return genre
 
-    async def _get_person_from_elastic(self, person_id: str) -> Person | None:
+    async def _get_genre_from_elastic(self, genre_id: str) -> Genre | None:
         try:
-            doc = await self.elastic.get(index='persons', id=person_id)
+            doc = await self.elastic.get(index='genres', id=genre_id)
         except NotFoundError:
             return None
-        return Person(**doc['_source'])
+        return Genre(**doc['_source'])
 
-    async def _person_from_cache(self, person_id: str) -> Person | None:
+    async def _genre_from_cache(self, genre_id: str) -> Genre | None:
         # Пытаемся получить данные о фильме из кеша, используя команду get
         # https://redis.io/commands/get/
-        data = await self.redis.get(person_id)
+        data = await self.redis.get(genre_id)
         if not data:
             return None
 
         # pydantic предоставляет удобное API для создания объекта моделей из json
-        person = Person.parse_raw(data)
-        return person
+        genre = Genre.parse_raw(data)
+        return genre
 
-    async def _put_person_to_cache(self, person: Person):
+    async def _put_genre_to_cache(self, genre: Genre):
         # Сохраняем данные о фильме, используя команду set
         # Выставляем время жизни кеша — 5 минут
         # https://redis.io/commands/set/
         # pydantic позволяет сериализовать модель в json
-        await self.redis.set(person.id, person.json(), FILM_CACHE_EXPIRE_IN_SECONDS)
+        await self.redis.set(genre.id, genre.json(), FILM_CACHE_EXPIRE_IN_SECONDS)
 
 
-    async def _search_person_from_elastic(self, phrase: str) -> list[Person] | None:
+    async def get_all(self) -> list[Genre] | None:
         try:
-            docs = await self.elastic.search(index='persons',
-                                            filter_path='hits.hits._source',
-                                            query={
-                                                    "match": {
-                                                        "full_name": {
-                                                            "query": phrase,
-                                                            "fuzziness": "auto"
-                                                          }
-                                                        }
-                                                    }
-                                            )
+            docs = await self.elastic.search(index='genres',
+                                             size='1000',
+                                             filter_path='hits.hits._source',
+                                             query={'match_all': {}}
+                                             )
             if not docs:
                 return None
             all_docs = [doc["_source"] for doc in docs["hits"]["hits"]]
@@ -81,20 +75,10 @@ class PersonService:
             return None
         return all_docs
 
-    async def films_with_person(self, person_id: str) -> list[FilmsWithPerson] | None:
-        person = await self.get_by_id(person_id)
-        if person:
-            return person.films
-        return None
-
-    async def get_by_search(self, phrase: str) -> list[Person] | None:
-        persons = await self._search_person_from_elastic(phrase)
-        return persons
-
 
 @lru_cache()
-def get_person_service(
+def get_genre_service(
         redis: Redis = Depends(get_redis),
         elastic: AsyncElasticsearch = Depends(get_elastic),
-) -> PersonService:
-    return PersonService(redis, elastic)
+) -> GenreService:
+    return GenreService(redis, elastic)

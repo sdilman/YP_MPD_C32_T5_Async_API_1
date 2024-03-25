@@ -5,7 +5,6 @@ from pydantic import BaseModel, Field
 
 from services.person import PersonService, get_person_service
 
-from models.movies import Person, FilmsWithPerson
 from uuid import UUID, uuid4
 
 

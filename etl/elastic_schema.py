@@ -250,15 +250,6 @@ schema_genres = {
       },
       "name": {
         "type": "text"
-      },
-      "films": {
-        "type": "nested",
-        "dynamic": "strict",
-        "properties": {
-          "filmwork_id": {
-            "type": "keyword"
-          }
-        }
       }
     }
   }

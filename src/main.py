@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 import uvicorn
 from fastapi import FastAPI
 
-from api.v1 import films, persons
+from api.v1 import films, persons, genres
 from core import config
 from core.logger import LOGGING
 from db import elastic, redis
@@ -28,6 +28,7 @@ app = FastAPI(
 
 app.include_router(films.router, prefix='/api/v1/films', tags=['films'])
 app.include_router(persons.router, prefix='/api/v1/persons', tags=['persons'])
+app.include_router(genres.router, prefix='/api/v1/genres', tags=['genres'])
 
 
 if __name__ == '__main__':

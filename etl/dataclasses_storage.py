@@ -55,4 +55,3 @@ class Person:
 class Genre:
     id: uuid.UUID
     name: str
-    films: list[dict]

@@ -6,8 +6,6 @@ from uuid import UUID
 
 class Genre(UUIDMixin):
     name: str
-    description: str
-
 
 class FilmsWithPerson(BaseModel):
     id: UUID = Field(primary_key=True, validation_alias='filmwork_id')

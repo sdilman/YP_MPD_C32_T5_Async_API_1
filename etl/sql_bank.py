@@ -85,14 +85,7 @@ ALL_MODIFIED_PERSONS = f"SELECT " \
 
 ALL_MODIFIED_GENRES = f"SELECT " \
                       f"g.id as g_id, " \
-                      f"g.name, " \
-                      f"COALESCE (" \
-                      f"json_agg(" \
-                      f"DISTINCT jsonb_build_object(" \
-                          f"'filmwork_id', fw.id)" \
-                          f") " \
-                          f"FILTER (WHERE fw.id is not null), " \
-                          f"'[]') as films " \
+                      f"g.name " \
                       f"FROM content.genre g " \
                       f"LEFT JOIN content.genre_film_work gfw ON gfw.genre_id = g.id " \
                       f"LEFT JOIN content.film_work fw ON fw.id = gfw.film_work_id " \
