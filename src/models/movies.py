@@ -1,6 +1,7 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional
 from .base import UUIDMixin
+from uuid import UUID
 
 
 class Genre(UUIDMixin):
@@ -8,8 +9,15 @@ class Genre(UUIDMixin):
     description: str
 
 
+class FilmsWithPerson(BaseModel):
+    id: UUID = Field(primary_key=True, validation_alias='filmwork_id')
+    roles: str
+    title: str
+    imdb_rating: float
+
 class Person(UUIDMixin):
-    name: str  # TODO: In ES - name, in the task - full_name
+    full_name: str  # TODO: In ES - name, in the task - full_name
+    films: list[FilmsWithPerson]
 
 
 class Actor(Person):

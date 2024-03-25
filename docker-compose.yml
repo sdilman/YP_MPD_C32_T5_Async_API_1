@@ -59,6 +59,8 @@ services:
       - .env
     ports:
       - "8000:8000"
+    expose:
+      - "${REDIS_PORT}"
     depends_on:
       db:
         condition: service_healthy
@@ -90,6 +92,14 @@ services:
     expose:
       - "${REDIS_PORT}"
 
+  kibana:
+    image: kibana:8.12.2
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
 
 volumes:
   postgres-data:

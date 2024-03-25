@@ -70,8 +70,10 @@ ALL_MODIFIED_PERSONS = f"SELECT " \
                       f"COALESCE (" \
                       f"json_agg(" \
                       f"DISTINCT jsonb_build_object(" \
-                          f"'filmwork_id', fw.id, " \
-                          f"'person_role', pfw.role)" \
+                          f"'filmwork_id', fw.id," \
+                          f"'roles', pfw.role," \
+                          f"'title', fw.title," \
+                          f"'imdb_rating', fw.rating)" \
                           f") " \
                           f"FILTER (WHERE fw.id is not null), " \
                           f"'[]') as films " \

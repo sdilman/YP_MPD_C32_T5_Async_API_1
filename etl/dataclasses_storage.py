@@ -37,10 +37,18 @@ class FilmWork:
 
 
 @dataclass
+class FilmsInPerson:
+    filmwork_id: uuid.UUID
+    roles: str
+    title: str
+    imdb_rating: float
+
+
+@dataclass
 class Person:
     id: uuid.UUID
     full_name: str
-    films: list[dict]
+    films: list[FilmsInPerson]
 
 
 @dataclass
