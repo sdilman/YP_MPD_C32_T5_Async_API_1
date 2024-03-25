@@ -1,8 +1,10 @@
-from redis.cluster import RedisCluster
+from redis.asyncio import Redis
 
-redis: RedisCluster | None = None
+from core import config
+
+redis: Redis | None = Redis(host=config.REDIS_HOST, port=config.REDIS_PORT)
 
 
 # Функция понадобится при внедрении зависимостей
-async def get_redis() -> RedisCluster:
+async def get_redis() -> Redis:
     return redis
