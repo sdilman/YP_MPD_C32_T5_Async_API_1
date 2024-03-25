@@ -1,15 +1,14 @@
+import pickle
 from functools import lru_cache
-from typing import Optional
-
-from elasticsearch import AsyncElasticsearch, NotFoundError
-from fastapi import Depends
-from redis.asyncio import Redis
 
 from db.elastic import get_elastic
 from db.redis import get_redis
+from elasticsearch import AsyncElasticsearch, NotFoundError
+from fastapi import Depends
 from models.movies import Genre
+from redis.asyncio import Redis
 
-FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
+GENRE_CACHE_EXPIRE_IN_SECONDS = 60 * 5
 
 
 class GenreService:
@@ -17,22 +16,13 @@ class GenreService:
         self.redis = redis
         self.elastic = elastic
 
-    # get_by_id возвращает объект фильма. Он опционален, так как фильм может отсутствовать в базе
     async def get_by_id(self, genre_id: str) -> Genre | None:
-        # # Пытаемся получить данные из кеша, потому что оно работает быстрее
-        # film = await self._film_from_cache(film_id)
-        # if not film:
-        #     # Если фильма нет в кеше, то ищем его в Elasticsearch
-        #     film = await self._get_film_from_elastic(film_id)
-        #     if not film:
-        #         # Если он отсутствует в Elasticsearch, значит, фильма вообще нет в базе
-        #         return None
-        #     # Сохраняем фильм  в кеш
-        #     await self._put_film_to_cache(film)
-
-        # return film
-
-        genre = await self._get_genre_from_elastic(genre_id)
+        genre = await self._genre_from_cache(genre_id)
+        if not genre:
+            genre = await self._get_genre_from_elastic(genre_id)
+            if not genre:
+                return None
+            await self._put_genre_to_cache(genre.uuid, genre)
         return genre
 
     async def _get_genre_from_elastic(self, genre_id: str) -> Genre | None:
@@ -42,26 +32,17 @@ class GenreService:
             return None
         return Genre(**doc['_source'])
 
-    async def _genre_from_cache(self, genre_id: str) -> Genre | None:
-        # Пытаемся получить данные о фильме из кеша, используя команду get
-        # https://redis.io/commands/get/
-        data = await self.redis.get(genre_id)
+    async def _genre_from_cache(self, key: str) -> Genre | None:
+        data = await self.redis.get(key)
         if not data:
             return None
 
-        # pydantic предоставляет удобное API для создания объекта моделей из json
-        genre = Genre.parse_raw(data)
-        return genre
+        return pickle.loads(data)
 
-    async def _put_genre_to_cache(self, genre: Genre):
-        # Сохраняем данные о фильме, используя команду set
-        # Выставляем время жизни кеша — 5 минут
-        # https://redis.io/commands/set/
-        # pydantic позволяет сериализовать модель в json
-        await self.redis.set(genre.id, genre.json(), FILM_CACHE_EXPIRE_IN_SECONDS)
+    async def _put_genre_to_cache(self, key, genre: Genre):
+        await self.redis.set(str(key), pickle.dumps(genre), GENRE_CACHE_EXPIRE_IN_SECONDS)
 
-
-    async def get_all(self) -> list[Genre] | None:
+    async def get_all_from_elastic(self) -> list[Genre] | None:
         try:
             docs = await self.elastic.search(index='genres',
                                              size='1000',
@@ -74,6 +55,16 @@ class GenreService:
         except NotFoundError:
             return None
         return all_docs
+
+    async def get_all(self) -> list[Genre] | None:
+        genres = await self._genre_from_cache('all_genres')
+        if not genres:
+            genres = await self.get_all_from_elastic()
+            if not genres:
+                return None
+            await self._put_genre_to_cache('all_genres', genres)
+
+        return genres
 
 
 @lru_cache()

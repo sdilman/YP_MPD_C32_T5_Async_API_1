@@ -1,7 +1,5 @@
 from pydantic import BaseModel, Field
-from datetime import datetime
 from uuid import UUID, uuid4
-import orjson
 
 
 class UUIDMixin(BaseModel):

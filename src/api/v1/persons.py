@@ -1,14 +1,12 @@
 from http import HTTPStatus
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-
 from services.person import PersonService, get_person_service
 
-from uuid import UUID, uuid4
-
-
 router = APIRouter()
+
 
 class SFilmsSearchPerson(BaseModel):
     id: UUID = Field(validation_alias='filmwork_id')
@@ -19,6 +17,7 @@ class SPersonSearch(BaseModel):
     uuid: UUID = Field(alias='id')
     full_name: str
     films: list[SFilmsSearchPerson]
+
 
 @router.get('/search',
             response_model=list[SPersonSearch],
@@ -34,6 +33,7 @@ class SFilmsPerson(BaseModel):
     id: UUID
     roles: str
 
+
 class SPerson(BaseModel):
     uuid: UUID
     full_name: str
@@ -42,16 +42,19 @@ class SPerson(BaseModel):
 
 @router.get('/{person_id}',
             response_model=SPerson)
-async def person_details(person_id: str, person_service: PersonService = Depends(get_person_service)):
+async def person_details(person_id: str,
+                         person_service: PersonService = Depends(get_person_service)):
     person = await person_service.get_by_id(person_id)
     if not person:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail='person not found')
     return person
 
+
 class SFilmsWithPerson(BaseModel):
     id: UUID
     title: str
     imdb_rating: float
+
 
 @router.get('/{person_id}/films',
             response_model=list[SFilmsWithPerson],
@@ -61,4 +64,3 @@ async def films_list(person_id: str, person_service: PersonService = Depends(get
     if not films:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail='films not found')
     return films
-

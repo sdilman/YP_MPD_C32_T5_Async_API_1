@@ -7,14 +7,16 @@ from uuid import UUID
 class Genre(UUIDMixin):
     name: str
 
+
 class FilmsWithPerson(BaseModel):
     id: UUID = Field(primary_key=True, validation_alias='filmwork_id')
     roles: str
     title: str
     imdb_rating: float
 
+
 class Person(UUIDMixin):
-    full_name: str  # TODO: In ES - name, in the task - full_name
+    full_name: str
     films: list[FilmsWithPerson]
 
 

@@ -1,15 +1,11 @@
 from http import HTTPStatus
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
-
-from services.genre import GenreService, get_genre_service
 from models.movies import Genre
-
-from uuid import UUID, uuid4
-
+from services.genre import GenreService, get_genre_service
 
 router = APIRouter()
+
 
 @router.get('/{genre_id}', response_model=Genre)
 async def genre_details(genre_id: str, genre_service: GenreService = Depends(get_genre_service)):
@@ -17,6 +13,7 @@ async def genre_details(genre_id: str, genre_service: GenreService = Depends(get
     if not genre:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail='genre not found')
     return genre
+
 
 @router.get('/', response_model=list[Genre])
 async def all_genres(genre_service: GenreService = Depends(get_genre_service)):
