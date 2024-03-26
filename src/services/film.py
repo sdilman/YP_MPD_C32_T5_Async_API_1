@@ -70,7 +70,18 @@ class FilmService:
                 docs = await self.elastic.search(index='movies')  
         except NotFoundError:
             return None
-        return [Film(**doc['_source']) for doc in docs['hits']['hits']]
+
+        res: List[Film] = []
+        for doc in docs['hits']['hits']:
+            _doc = doc['_source'].copy()
+            _directors = [{'uuid': d['id'], 'full_name': d['name'], 'films': []} for d in _doc['directors']]
+            _doc['directors'] = _directors
+            _writers = [{'uuid': w['id'], 'full_name': w['name'], 'films': []} for w in _doc['writers']]
+            _doc['writers'] = _writers
+            _actors = [{'uuid': a['id'], 'full_name': a['name'], 'films': []} for a in _doc['actors']]
+            _doc['actors'] = _actors
+            res.append(Film(**_doc))
+        return res
 
     async def _film_from_cache(self, film_id: str) -> Optional[Film]:
         # Пытаемся получить данные о фильме из кеша, используя команду get
