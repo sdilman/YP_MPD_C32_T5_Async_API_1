@@ -10,7 +10,7 @@ class Genre(UUIDMixin):
 
 class FilmsWithPerson(BaseModel):
     id: UUID = Field(primary_key=True, validation_alias='filmwork_id')
-    roles: str
+    roles: list
     title: str
     imdb_rating: float
 

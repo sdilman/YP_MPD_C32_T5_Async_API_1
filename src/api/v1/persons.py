@@ -10,7 +10,7 @@ router = APIRouter()
 
 class SFilmsSearchPerson(BaseModel):
     id: UUID = Field(validation_alias='filmwork_id')
-    roles: str
+    roles: list
 
 
 class SPersonSearch(BaseModel):
@@ -31,7 +31,7 @@ async def search_person(phrase: str, person_service: PersonService = Depends(get
 
 class SFilmsPerson(BaseModel):
     id: UUID
-    roles: str
+    roles: list
 
 
 class SPerson(BaseModel):
