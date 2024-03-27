@@ -59,6 +59,8 @@ services:
       - .env
     ports:
       - "8000:8000"
+    expose:
+      - "${REDIS_PORT}"
     depends_on:
       db:
         condition: service_healthy
@@ -89,7 +91,6 @@ services:
     image: redis:7.2.4-alpine
     expose:
       - "${REDIS_PORT}"
-
 
 volumes:
   postgres-data:

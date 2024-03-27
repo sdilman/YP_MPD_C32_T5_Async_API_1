@@ -169,6 +169,9 @@ schema_persons = {
       "full_name": {
         "type": "text"
       },
+      "roles": {
+        "type": "text"
+      },
       "films": {
         "type": "nested",
         "dynamic": "strict",
@@ -176,9 +179,21 @@ schema_persons = {
           "filmwork_id": {
             "type": "keyword"
           },
-          "person_role": {
+          "roles": {
             "type": "text",
             "analyzer": "ru_en"
+          },
+          "title": {
+            "type": "text",
+            "analyzer": "ru_en",
+            "fields": {
+              "raw": {
+                "type": "keyword"
+              }
+            }
+          },
+          "imdb_rating": {
+            "type": "float"
           }
         }
       }
@@ -235,15 +250,6 @@ schema_genres = {
       },
       "name": {
         "type": "text"
-      },
-      "films": {
-        "type": "nested",
-        "dynamic": "strict",
-        "properties": {
-          "filmwork_id": {
-            "type": "keyword"
-          }
-        }
       }
     }
   }

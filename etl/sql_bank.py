@@ -70,8 +70,10 @@ ALL_MODIFIED_PERSONS = f"SELECT " \
                       f"COALESCE (" \
                       f"json_agg(" \
                       f"DISTINCT jsonb_build_object(" \
-                          f"'filmwork_id', fw.id, " \
-                          f"'person_role', pfw.role)" \
+                          f"'filmwork_id', fw.id," \
+                          f"'roles', pfw.role," \
+                          f"'title', fw.title," \
+                          f"'imdb_rating', fw.rating)" \
                           f") " \
                           f"FILTER (WHERE fw.id is not null), " \
                           f"'[]') as films " \
@@ -83,14 +85,7 @@ ALL_MODIFIED_PERSONS = f"SELECT " \
 
 ALL_MODIFIED_GENRES = f"SELECT " \
                       f"g.id as g_id, " \
-                      f"g.name, " \
-                      f"COALESCE (" \
-                      f"json_agg(" \
-                      f"DISTINCT jsonb_build_object(" \
-                          f"'filmwork_id', fw.id)" \
-                          f") " \
-                          f"FILTER (WHERE fw.id is not null), " \
-                          f"'[]') as films " \
+                      f"g.name " \
                       f"FROM content.genre g " \
                       f"LEFT JOIN content.genre_film_work gfw ON gfw.genre_id = g.id " \
                       f"LEFT JOIN content.film_work fw ON fw.id = gfw.film_work_id " \
