@@ -1,9 +1,10 @@
 from http import HTTPStatus
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from services.person import PersonService, get_person_service
+from fastapi_pagination import Page, paginate
 
 router = APIRouter()
 
@@ -21,9 +22,13 @@ class SPersonSearch(BaseModel):
 
 @router.get('/search',
             response_model=list[SPersonSearch],
-            response_model_by_alias=False)
-async def search_person(phrase: str, person_service: PersonService = Depends(get_person_service)):
-    persons = await person_service.get_by_search(phrase)
+            response_model_by_alias=False,
+            description="Search by person")
+async def search_person(phrase: str,
+                        page: int = Query(ge=1, default=1),
+                        size: int = Query(ge=1, default=10),
+                        person_service: PersonService = Depends(get_person_service)):
+    persons = await person_service.get_by_search(phrase, page, size)
     if not persons:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail='persons not found')
     return persons
@@ -41,7 +46,8 @@ class SPerson(BaseModel):
 
 
 @router.get('/{person_id}',
-            response_model=SPerson)
+            response_model=SPerson,
+            description="Give information about person by id")
 async def person_details(person_id: str,
                          person_service: PersonService = Depends(get_person_service)):
     person = await person_service.get_by_id(person_id)
@@ -57,10 +63,12 @@ class SFilmsWithPerson(BaseModel):
 
 
 @router.get('/{person_id}/films',
-            response_model=list[SFilmsWithPerson],
-            response_model_by_alias=False)
-async def films_list(person_id: str, person_service: PersonService = Depends(get_person_service)):
+            response_model=Page[SFilmsWithPerson],
+            response_model_by_alias=False,
+            description="Give films where person work")
+async def films_list(person_id: str,
+                     person_service: PersonService = Depends(get_person_service)):
     films = await person_service.films_with_person(person_id)
     if not films:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail='films not found')
-    return films
+    return paginate(films)

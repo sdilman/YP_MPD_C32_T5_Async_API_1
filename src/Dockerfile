@@ -16,4 +16,4 @@ RUN  mkdir -p /opt/app/static/ \
 
 COPY ./src .
 
-ENTRYPOINT ["python", "main.py"]
+ENTRYPOINT gunicorn main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind "$FASTAPI_HOST":"$FASTAPI_PORT"

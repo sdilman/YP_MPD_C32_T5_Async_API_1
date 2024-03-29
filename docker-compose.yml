@@ -57,6 +57,8 @@ services:
       dockerfile: ./src/Dockerfile
     env_file:
       - .env
+    expose:
+      - "${FASTAPI_PORT}"
     depends_on:
       db:
         condition: service_healthy

@@ -41,11 +41,13 @@ class PersonService:
     async def _put_person_to_cache(self, key, person: Person):
         await self.redis.set(str(key), pickle.dumps(person), PERSON_CACHE_EXPIRE_IN_SECONDS)
 
-    async def _search_person_from_elastic(self, phrase: str) -> list[Person] | None:
+    async def _search_person_from_elastic(self, phrase: str, page: int, size: int) -> list[Person] | None:
         try:
             docs = await self.elastic.search(
                 index='persons',
                 filter_path='hits.hits._source',
+                size=size,
+                from_=(page-1)*size,
                 query={
                     "match": {
                         "full_name": {
@@ -68,13 +70,14 @@ class PersonService:
             return person.films
         return None
 
-    async def get_by_search(self, phrase: str) -> list[Person] | None:
-        persons = await self._person_from_cache(phrase)
+    async def get_by_search(self, phrase: str, page: int, size: int) -> list[Person] | None:
+        key = 'persons_search' + phrase + str(page) + str(size)
+        persons = await self._person_from_cache(key)
         if not persons:
-            persons = await self._search_person_from_elastic(phrase)
+            persons = await self._search_person_from_elastic(phrase, page, size)
             if not persons:
                 return None
-            await self._put_person_to_cache(phrase, persons)
+            await self._put_person_to_cache(key, persons)
 
         return persons
 
