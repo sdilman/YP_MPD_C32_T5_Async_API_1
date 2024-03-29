@@ -17,12 +17,13 @@ class GenreService:
         self.elastic = elastic
 
     async def get_by_id(self, genre_id: str) -> Genre | None:
-        genre = await self._genre_from_cache(genre_id)
+        key = 'genre_id' + genre_id
+        genre = await self._genre_from_cache(key)
         if not genre:
             genre = await self._get_genre_from_elastic(genre_id)
             if not genre:
                 return None
-            await self._put_genre_to_cache(genre.uuid, genre)
+            await self._put_genre_to_cache(key, genre)
         return genre
 
     async def _get_genre_from_elastic(self, genre_id: str) -> Genre | None:
@@ -45,7 +46,7 @@ class GenreService:
     async def get_all_from_elastic(self) -> list[Genre] | None:
         try:
             docs = await self.elastic.search(index='genres',
-                                             size='1000',
+                                             size='10000',
                                              filter_path='hits.hits._source',
                                              query={'match_all': {}}
                                              )
