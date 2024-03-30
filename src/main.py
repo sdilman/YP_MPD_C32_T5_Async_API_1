@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from api.v1 import films, persons, genres
-from core import config
+from core.config import settings
 from core.logger import LOGGING
 from db import elastic, redis
 from fastapi_pagination import add_pagination
@@ -21,7 +21,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title=config.PROJECT_NAME,
+    title=settings.project_name,
     docs_url='/api/openapi',
     openapi_url='/api/openapi.json',
     lifespan=lifespan
