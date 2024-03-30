@@ -1,8 +1,8 @@
 from redis.asyncio import Redis
 
-from core import config
+from core.config import settings
 
-redis: Redis | None = Redis(host=config.REDIS_HOST, port=config.REDIS_PORT)
+redis: Redis | None = Redis(host=settings.redis_host, port=settings.redis_port)
 
 
 # Функция понадобится при внедрении зависимостей
