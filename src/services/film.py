@@ -1,5 +1,7 @@
 from functools import lru_cache
 from typing import Optional, List
+import pickle
+import logging
 
 from elasticsearch import AsyncElasticsearch, NotFoundError
 from fastapi import Depends
@@ -18,20 +20,68 @@ class FilmService:
         self.elastic = elastic
 
     async def get_by_id(self, film_id: str) -> Optional[Film]:
-        film = await self._film_from_cache(film_id)
+        key = self.redis_key('film_get_by_id', film_id)
+        film = await self._film_from_cache(film_id) # TODO: update key
         if not film:
             film = await self._get_film_from_elastic(film_id)
             if not film:
                 return None
-            await self._put_film_to_cache(film)
+            await self._put_film_to_cache(key, film)
         return film
+
+    async def get(self, genre: str, title: str, page: int, size: int) -> Optional[List[Film]]:
+        key = self.redis_key('film_get', genre, title, page, size)
+        films = await self._films_from_cache(key)
+        if not films:
+            films = await self._get_films_from_elastic(genre, title, page, size)
+            if not films:
+                return None
+            await self._put_films_to_cache(key, films)
+        return films
+
+    async def get_by_search(self, phrase: str, page: int, size: int) -> Optional[List[Film]]:
+        key = self.redis_key('film_get_by_search', phrase, page, size)
+        films = await self._films_from_cache(key)
+        if not films:
+            films = await self._search_films_from_elastic(phrase, page, size)
+            if not films:
+                return None
+            await self._put_films_to_cache(key, films)
+        return films
+
+    async def _search_films_from_elastic(self, phrase: str, page: int, size: int) -> Optional[List[Film]]:
+        try:
+            docs = await self.elastic.search(
+                index='movies',
+                filter_path='hits.hits._source',
+                size=size,
+                from_=(page-1)*size,
+                body={
+                    "query": {
+                        "bool": {
+                            "must": [{ "match": { "title": phrase } },]
+                            }
+                        }
+                    }
+            )
+            if not docs:
+                return None
+            res: List[Film] = []
+            for doc in docs['hits']['hits']:
+                film = await self._film_doc_to_model(doc)
+                res.append(film)
+            return res
+        except NotFoundError:
+            return None
 
     async def _get_film_from_elastic(self, film_id: str) -> Optional[Film]:
         try:
             doc = await self.elastic.get(index='movies', id=film_id)
         except NotFoundError:
             return None
-        
+        return await self._film_doc_to_model(doc)
+
+    async def _film_doc_to_model(self, doc) -> Film:
         _doc = doc['_source'].copy()
         _directors = [{'uuid': d['id'], 'full_name': d['name'], 'films': []} for d in _doc['directors']]
         _doc['directors'] = _directors
@@ -41,11 +91,13 @@ class FilmService:
         _doc['actors'] = _actors
         return Film(**_doc)
 
-    async def get(self, genre: str = None, title: str = None):
-        films = await self._get_films_from_elastic(genre, title)
-        return films
-
-    async def _get_films_from_elastic(self, genre: str = None, title: str = None):
+    async def _get_films_from_elastic(
+            self, 
+            genre: str = None, 
+            title: str = None, 
+            page: int = 1, 
+            size: int = 50
+        ):
         try:
             if genre or title:
                 cond = []
@@ -64,33 +116,54 @@ class FilmService:
                             }
                         }
                     }
-                docs = await self.elastic.search(index='movies', body=query)
+                docs = await self.elastic.search(
+                    index='movies', 
+                    filter_path='hits.hits._source',
+                    size=size,
+                    from_=(page-1)*size,
+                    body=query
+                )
             else:
-                docs = await self.elastic.search(index='movies')  
+                docs = await self.elastic.search(
+                    index='movies',                    
+                    filter_path='hits.hits._source',
+                    size=size,
+                    from_=(page-1)*size
+                )  
         except NotFoundError:
             return None
 
         res: List[Film] = []
         for doc in docs['hits']['hits']:
-            _doc = doc['_source'].copy()
-            _directors = [{'uuid': d['id'], 'full_name': d['name'], 'films': []} for d in _doc['directors']]
-            _doc['directors'] = _directors
-            _writers = [{'uuid': w['id'], 'full_name': w['name'], 'films': []} for w in _doc['writers']]
-            _doc['writers'] = _writers
-            _actors = [{'uuid': a['id'], 'full_name': a['name'], 'films': []} for a in _doc['actors']]
-            _doc['actors'] = _actors
-            res.append(Film(**_doc))
+            film = await self._film_doc_to_model(doc)
+            res.append(film)
         return res
 
-    async def _film_from_cache(self, film_id: str) -> Optional[Film]:
-        data = await self.redis.get(film_id)
+    async def _film_from_cache(self, key: str) -> Optional[Film]:
+        data = await self.redis.get(key)
         if not data:
             return None
         film = Film.parse_raw(data)
         return film
 
-    async def _put_film_to_cache(self, film: Film):
-        await self.redis.set(str(film.uuid), film.json(), FILM_CACHE_EXPIRE_IN_SECONDS)
+    async def _films_from_cache(self, key: str) -> Optional[List[Film]]:
+        data = await self.redis.get(key)
+        if not data:
+            return None
+        return pickle.loads(data)
+
+    async def _put_film_to_cache(self, key: str, film: Film):  # TODO: update key
+        await self.redis.set(key, film.json(), FILM_CACHE_EXPIRE_IN_SECONDS)
+
+    async def _put_films_to_cache(self, key: str, films: List[Film]):  # TODO: update key
+        await self.redis.set(key, pickle.dumps(films), FILM_CACHE_EXPIRE_IN_SECONDS)
+
+    def redis_key(self, key_base:str, *args):
+        res = key_base
+        for arg in args:
+            if arg is not None:
+                res += str(arg)
+        return res
 
 @lru_cache()
 def get_film_service(
