@@ -33,7 +33,7 @@ class PersonService:
             return None
         return Person(**doc['_source'])
 
-    async def _person_from_cache(self, key: str) -> Person | None:
+    async def _person_from_cache(self, key: str) -> Person | list[Person] | None:
         data = await self.redis.get(key)
         if not data:
             return None
