@@ -1,26 +1,26 @@
 import pytest
 import aiohttp
 import asyncio
-
+import json
 
 from elasticsearch import AsyncElasticsearch
 from elasticsearch.helpers import async_bulk
 
 from tests.functional.settings import test_settings
-from tests.functional.testdata.es_mapping import schema_genres
+from tests.functional.testdata.es_mapping import schema_movies, schema_persons, schema_genres
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture
 async def es_client():
     client = AsyncElasticsearch(hosts=f'http://{test_settings.ELASTIC_HOST}:{test_settings.ELASTIC_PORT}')
-    for es_index in ['films', 'genres', 'persons']:
+    for es_index, schema in [('movies', schema_movies), ('genres', schema_genres), ('persons', schema_persons)]:
         if await client.indices.exists(index=es_index):
             await client.indices.delete(index=es_index)
-        await client.indices.create(index=es_index, **schema_genres)
+        await client.indices.create(index=es_index, **schema)
     yield client
     await client.close()
 
-@pytest.fixture(scope='session')
+@pytest.fixture
 async def http_session():
     session = aiohttp.ClientSession()
     yield session
@@ -51,6 +51,17 @@ def get_data_from_api(http_session):
             headers = response.headers
             status = response.status
         return body, headers, status
+    return inner
+
+@pytest.fixture
+def get_list_data_from_api(http_session):
+    async def inner(url: str):
+        async with http_session.get(url) as response:
+            body = await response.read()
+            headers = response.headers
+            status = response.status
+            res = json.loads(body.decode())
+        return res, headers, status
     return inner
 
 
