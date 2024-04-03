@@ -49,6 +49,34 @@ class FilmService:
             await self._put_films_to_cache(key, films)
         return films
 
+    async def get_all_from_elastic(self) -> list[Film] | None:
+        try:
+            docs = await self.elastic.search(index='movies',
+                                             size='10000',
+                                             filter_path='hits.hits._source',
+                                             query={'match_all': {}}
+                                             )
+            if not docs:
+                return None
+            res: List[Film] = []
+            for doc in docs['hits']['hits']:
+                film = await self._film_doc_to_model(doc)
+                res.append(film)
+            return res
+        except NotFoundError:
+            return None
+
+    async def get_all(self) -> list[Film] | None:
+        key = 'all_films'
+        films = await self._films_from_cache(key)
+        if not films:
+            films = await self.get_all_from_elastic()
+            if not films:
+                return None
+            await self._put_films_to_cache(key, films)
+
+        return films
+
     async def _search_films_from_elastic(self, phrase: str, page: int, size: int) -> Optional[List[Film]]:
         try:
             docs = await self.elastic.search(
@@ -83,12 +111,25 @@ class FilmService:
 
     async def _film_doc_to_model(self, doc) -> Film:
         _doc = doc['_source'].copy()
-        _directors = [{'uuid': d['id'], 'full_name': d['name'], 'films': []} for d in _doc['directors']]
+
+        if 'directors' in _doc:
+            _directors = [{'uuid': d['id'], 'full_name': d['name'], 'films': []} for d in _doc['directors']]
+        else:
+            _directors = []
         _doc['directors'] = _directors
-        _writers = [{'uuid': w['id'], 'full_name': w['name'], 'films': []} for w in _doc['writers']]
+
+        if 'writers' in _doc:
+            _writers = [{'uuid': w['id'], 'full_name': w['name'], 'films': []} for w in _doc['writers']]
+        else:
+            _writers = []
         _doc['writers'] = _writers
-        _actors = [{'uuid': a['id'], 'full_name': a['name'], 'films': []} for a in _doc['actors']]
+
+        if 'actors' in _doc:
+            _actors = [{'uuid': a['id'], 'full_name': a['name'], 'films': []} for a in _doc['actors']]
+        else:
+            _actors = []
         _doc['actors'] = _actors
+        
         return Film(**_doc)
 
     async def _get_films_from_elastic(
@@ -134,9 +175,10 @@ class FilmService:
             return None
 
         res: List[Film] = []
-        for doc in docs['hits']['hits']:
-            film = await self._film_doc_to_model(doc)
-            res.append(film)
+        if 'hits' in docs and 'hits' in docs['hits']:
+            for doc in docs['hits']['hits']:
+                film = await self._film_doc_to_model(doc)
+                res.append(film)
         return res
 
     async def _film_from_cache(self, key: str) -> Optional[Film]:
