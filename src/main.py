@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from api.v1 import films, persons, genres
+from api.v1 import films, persons, genres, health
 from core.config import settings
 from core.logger import LOGGING
 from db import elastic, redis
@@ -31,3 +31,4 @@ add_pagination(app)
 app.include_router(films.router, prefix='/api/v1/films', tags=['films'])
 app.include_router(persons.router, prefix='/api/v1/persons', tags=['persons'])
 app.include_router(genres.router, prefix='/api/v1/genres', tags=['genres'])
+app.include_router(health.router, prefix='/api/v1/health', tags=['health'])
