@@ -35,12 +35,18 @@ def get_es_bulk_query(es_data, es_index):
     return bulk_query
 
 @pytest.fixture
-def es_write_data(es_client):
+def es_write_data(es_client: AsyncElasticsearch):
     async def inner(data: list[dict], es_index: str):
         bulk_query = get_es_bulk_query(data, es_index)
-        updated, errors = await async_bulk(client=es_client, actions=bulk_query)
+        updated, errors = await async_bulk(client=es_client, actions=bulk_query, refresh="wait_for")
         if errors:
             raise Exception('Ошибка записи данных в Elasticsearch')
+    return inner
+
+@pytest.fixture
+def es_delete_data(es_client: AsyncElasticsearch):
+    async def inner(es_index: str):
+        await es_client.delete_by_query(index=es_index, body={"query": {"match_all": {}}})
     return inner
 
 @pytest.fixture
@@ -63,13 +69,3 @@ def get_list_data_from_api(http_session):
             res = json.loads(body.decode())
         return res, headers, status
     return inner
-
-
-# @pytest.fixture(scope="session")
-# def event_loop():
-#     try:
-#         loop = asyncio.get_running_loop()
-#     except RuntimeError:
-#         loop = asyncio.new_event_loop()
-#     yield loop
-#     loop.close()
