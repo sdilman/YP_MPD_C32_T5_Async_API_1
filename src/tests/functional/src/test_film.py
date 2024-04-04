@@ -18,7 +18,7 @@ def test_films_search_data():
          'imdb_rating': 9.0, 'genres': ['Sci-Fi', 'Adventure']},
         {'id': str(uuid.uuid4()), 'title': 'so-so movie', 'description': '', 
          'imdb_rating': 6.5, 'genres': []},
-        {'id': str(uuid.uuid4()), 'title': 'doc movie', 'description': '',
+        {'id': str(uuid.uuid4()), 'title': 'doc film', 'description': '',
           'imdb_rating': 6.5, 'genres': ['Documentary']},
     ]
     return data
@@ -74,7 +74,6 @@ async def test_films_search_query_genre(http_session, es_write_data, get_list_da
     assert status == HTTPStatus.OK
     assert len(res) == 1
 
-
 @pytest.mark.asyncio
 async def test_films_search_id(http_session, es_write_data, get_data_from_api, test_films_search_data):
     await es_write_data(test_films_search_data, es_index)
@@ -86,3 +85,15 @@ async def test_films_search_id(http_session, es_write_data, get_data_from_api, t
 
     assert status == HTTPStatus.OK
     assert body['id'] == film_id
+
+@pytest.mark.asyncio
+async def test_films_search_title(http_session, es_write_data, get_list_data_from_api, test_films_search_data):
+    await es_write_data(test_films_search_data, es_index)
+    phrase = 'movie'
+    time.sleep(3)
+    url = f'http://{test_settings.FASTAPI_HOST}:{test_settings.FASTAPI_PORT}' \
+          f'/api/v1/films/search?phrase={phrase}&page=1&size=50'
+    res, headers, status = await get_list_data_from_api(url)
+
+    assert status == HTTPStatus.OK
+    assert len(res) == 2
