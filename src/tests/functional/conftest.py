@@ -71,7 +71,7 @@ def get_list_data_from_api(http_session):
         return res, headers, status
     return inner
 
-@pytest.fixture(scope="function")
+@pytest.fixture()
 async def redis_client():
     redis_client = Redis(host=test_settings.REDIS_HOST, port=test_settings.REDIS_PORT)
     yield redis_client
