@@ -12,7 +12,7 @@ from tests.functional.settings import test_settings
 es_index = 'persons'
 
 @pytest.mark.asyncio
-async def test_get_by_id(http_session, es_write_data, get_data_from_api):
+async def test_get_by_id(es_write_data, get_data_from_api):
     person_id = str(uuid.uuid4())
     film_id = str(uuid.uuid4())
     full_name = random.choice(string.ascii_letters)
@@ -38,7 +38,7 @@ async def test_get_by_id(http_session, es_write_data, get_data_from_api):
     assert body["uuid"] == person_id
 
 @pytest.mark.asyncio
-async def test_get_by_id_not_found(http_session, es_write_data, get_data_from_api):
+async def test_get_by_id_not_found(es_write_data, get_data_from_api):
     person_id = str(uuid.uuid4())
     film_id = str(uuid.uuid4())
     full_name = random.choice(string.ascii_letters)
@@ -64,7 +64,7 @@ async def test_get_by_id_not_found(http_session, es_write_data, get_data_from_ap
     assert body["detail"] == 'person not found'
 
 @pytest.mark.asyncio
-async def test_get_by_id_from_cache(http_session, es_write_data, get_data_from_api, es_delete_data):
+async def test_get_by_id_from_cache(redis_client, es_write_data, get_data_from_api, es_delete_data):
     person_id = str(uuid.uuid4())
     film_id = str(uuid.uuid4())
     full_name = random.choice(string.ascii_letters)
@@ -92,7 +92,7 @@ async def test_get_by_id_from_cache(http_session, es_write_data, get_data_from_a
     assert body["uuid"] == person_id
 
 @pytest.mark.asyncio
-async def test_search(http_session, es_write_data, get_data_from_api, es_delete_data):
+async def test_search(es_write_data, get_data_from_api, es_delete_data):
     phrase = 'Krill'
     es_data = [{
         'id': str(uuid.uuid4()),
@@ -129,7 +129,7 @@ async def test_search(http_session, es_write_data, get_data_from_api, es_delete_
     assert len(body) == 1
 
 @pytest.mark.asyncio
-async def test_films_by_person(http_session, es_write_data, get_data_from_api, es_delete_data):
+async def test_films_by_person(es_write_data, get_data_from_api, es_delete_data):
     person_id = str(uuid.uuid4())
     film_id1 = str(uuid.uuid4())
     film_id2 = str(uuid.uuid4())

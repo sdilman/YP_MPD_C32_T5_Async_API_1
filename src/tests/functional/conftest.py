@@ -5,6 +5,7 @@ import json
 
 from elasticsearch import AsyncElasticsearch
 from elasticsearch.helpers import async_bulk
+from redis.asyncio import Redis
 
 from tests.functional.settings import test_settings
 from tests.functional.testdata.es_mapping import schema_movies, schema_persons, schema_genres
@@ -69,3 +70,10 @@ def get_list_data_from_api(http_session):
             res = json.loads(body.decode())
         return res, headers, status
     return inner
+
+@pytest.fixture(scope="function")
+async def redis_client():
+    redis_client = Redis(host=test_settings.REDIS_HOST, port=test_settings.REDIS_PORT)
+    yield redis_client
+    await redis_client.flushall()
+    await redis_client.close()

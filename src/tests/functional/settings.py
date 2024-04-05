@@ -7,6 +7,8 @@ class Settings(BaseSettings):
     ELASTIC_HOST: str = '127.0.0.1'
     FASTAPI_PORT: int = 8000
     FASTAPI_HOST: str = '127.0.0.1'
+    REDIS_PORT: int = 6379
+    REDIS_HOST: str = '127.0.0.1'
     model_config = SettingsConfigDict(env_file='../../.env.test', env_file_encoding='utf-8')
 
 

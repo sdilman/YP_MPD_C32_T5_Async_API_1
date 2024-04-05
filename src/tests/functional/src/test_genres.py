@@ -12,7 +12,7 @@ from tests.functional.settings import test_settings
 es_index = 'genres'
 
 @pytest.mark.asyncio
-async def test_list(http_session, es_write_data, get_list_data_from_api):
+async def test_list(es_write_data, get_list_data_from_api):
     data_len = random.randint(1, 100)
     es_data = [{
         'id': str(uuid.uuid4()),
@@ -26,7 +26,7 @@ async def test_list(http_session, es_write_data, get_list_data_from_api):
     assert len(body["items"]) == data_len
 
 @pytest.mark.asyncio
-async def test_get_by_id(http_session, es_write_data, get_data_from_api):
+async def test_get_by_id(es_write_data, get_data_from_api):
     genre_id = str(uuid.uuid4())
     name = random.choice(string.ascii_letters)
     es_data = [{
@@ -42,7 +42,7 @@ async def test_get_by_id(http_session, es_write_data, get_data_from_api):
     assert body["id"] == genre_id
 
 @pytest.mark.asyncio
-async def test_get_by_id_not_found(http_session, es_write_data, get_data_from_api):
+async def test_get_by_id_not_found(es_write_data, get_data_from_api):
     genre_id = str(uuid.uuid4())
     name = random.choice(string.ascii_letters)
     es_data = [{
@@ -58,7 +58,7 @@ async def test_get_by_id_not_found(http_session, es_write_data, get_data_from_ap
     assert body["detail"] == 'genre not found'
 
 @pytest.mark.asyncio
-async def test_get_by_id_from_cache(http_session, es_write_data, get_data_from_api, es_delete_data):
+async def test_get_by_id_from_cache(redis_client, es_write_data, get_data_from_api, es_delete_data):
     genre_id = str(uuid.uuid4())
     name = random.choice(string.ascii_letters)
     es_data = [{
