@@ -9,55 +9,36 @@ from http import HTTPStatus
 from tests.functional.settings import test_settings
 
 
-es_index = 'persons'
+ES_INDEX = 'persons'
+data_len = random.randint(1, 50)
+data = [{
+        'id': str(uuid.uuid4()),
+        'full_name': ''.join(random.choices(string.ascii_letters, k=5)),
+        'roles': ''.join(random.choices(string.ascii_letters, k=5)),
+        'films': [{
+                    "filmwork_id": str(uuid.uuid4()),
+                    "roles": [''.join(random.choices(string.ascii_letters, k=5))],
+                    'title': ''.join(random.choices(string.ascii_letters, k=5)),
+                    'imdb_rating': random.uniform(0, 10)
+                } for _ in range(data_len)]
+        } for _ in range(data_len)]
+base_url = f'http://{test_settings.FASTAPI_HOST}:{test_settings.FASTAPI_PORT}/api/v1/{ES_INDEX}/'
 
 @pytest.mark.asyncio
 async def test_get_by_id(es_write_data, get_data_from_api):
-    person_id = str(uuid.uuid4())
-    film_id = str(uuid.uuid4())
-    full_name = random.choice(string.ascii_letters)
-    roles = random.choice(string.ascii_letters)
-    es_data = [{
-        'id': person_id,
-        'full_name': full_name,
-        'roles': roles,
-        'films': [{
-            "filmwork_id": film_id,
-            "roles": [
-                'some_role'
-            ],
-            'title': 'some_title',
-            'imdb_rating': 4.7
-        }]
-    }]
-    await es_write_data(es_data, es_index)
-    url = f'http://{test_settings.FASTAPI_HOST}:{test_settings.FASTAPI_PORT}/api/v1/persons/{person_id}'
+    await es_write_data([data[0]], ES_INDEX)
+
+    url = base_url + f'{data[0]["id"]}'
     body, headers, status = await get_data_from_api(url)
 
     assert status == HTTPStatus.OK
-    assert body["uuid"] == person_id
+    assert body["uuid"] == data[0]["id"]
 
 @pytest.mark.asyncio
 async def test_get_by_id_not_found(es_write_data, get_data_from_api):
-    person_id = str(uuid.uuid4())
-    film_id = str(uuid.uuid4())
-    full_name = random.choice(string.ascii_letters)
-    roles = random.choice(string.ascii_letters)
-    es_data = [{
-        'id': str(uuid.uuid4()),
-        'full_name': full_name,
-        'roles': roles,
-        'films': [{
-            "filmwork_id": film_id,
-            "roles": [
-                'some_role'
-            ],
-            'title': 'some_title',
-            'imdb_rating': 4.7
-        }]
-    }]
-    await es_write_data(es_data, es_index)
-    url = f'http://{test_settings.FASTAPI_HOST}:{test_settings.FASTAPI_PORT}/api/v1/persons/{person_id}'
+    await es_write_data([data[0]], ES_INDEX)
+
+    url = base_url + f'{str(uuid.uuid4())}'
     body, headers, status = await get_data_from_api(url)
 
     assert status == HTTPStatus.NOT_FOUND
@@ -65,31 +46,15 @@ async def test_get_by_id_not_found(es_write_data, get_data_from_api):
 
 @pytest.mark.asyncio
 async def test_get_by_id_from_cache(redis_client, es_write_data, get_data_from_api, es_delete_data):
-    person_id = str(uuid.uuid4())
-    film_id = str(uuid.uuid4())
-    full_name = random.choice(string.ascii_letters)
-    roles = random.choice(string.ascii_letters)
-    es_data = [{
-        'id': person_id,
-        'full_name': full_name,
-        'roles': roles,
-        'films': [{
-            "filmwork_id": film_id,
-            "roles": [
-                'some_role'
-            ],
-            'title': 'some_title',
-            'imdb_rating': 4.7
-        }]
-    }]
-    await es_write_data(es_data, es_index)
-    url = f'http://{test_settings.FASTAPI_HOST}:{test_settings.FASTAPI_PORT}/api/v1/persons/{person_id}'
+    await es_write_data([data[0]], ES_INDEX)
+
+    url = base_url + f'{data[0]["id"]}'
     await get_data_from_api(url)
-    await es_delete_data(es_index)
+    await es_delete_data(ES_INDEX)
     body, headers, status = await get_data_from_api(url)
 
     assert status == HTTPStatus.OK
-    assert body["uuid"] == person_id
+    assert body["uuid"] == data[0]["id"]
 
 @pytest.mark.asyncio
 async def test_search(es_write_data, get_data_from_api, es_delete_data):
@@ -117,12 +82,13 @@ async def test_search(es_write_data, get_data_from_api, es_delete_data):
                     'some_role'
                 ],
                 'title': 'some_title',
-                'imdb_rating': 4.7
+                'imdb_rating': 4.9
             }]
         }
     ]
-    await es_write_data(es_data, es_index)
-    url = f'http://{test_settings.FASTAPI_HOST}:{test_settings.FASTAPI_PORT}/api/v1/persons/search?phrase={phrase}'
+    await es_write_data(es_data, ES_INDEX)
+
+    url = base_url + f'search?phrase={phrase}'
     body, headers, status = await get_data_from_api(url)
 
     assert status == HTTPStatus.OK
@@ -130,36 +96,10 @@ async def test_search(es_write_data, get_data_from_api, es_delete_data):
 
 @pytest.mark.asyncio
 async def test_films_by_person(es_write_data, get_data_from_api, es_delete_data):
-    person_id = str(uuid.uuid4())
-    film_id1 = str(uuid.uuid4())
-    film_id2 = str(uuid.uuid4())
-    full_name = random.choice(string.ascii_letters)
-    roles = random.choice(string.ascii_letters)
-    es_data = [{
-        'id': person_id,
-        'full_name': full_name,
-        'roles': roles,
-        'films': [{
-            "filmwork_id": film_id1,
-            "roles": [
-                'some_role'
-            ],
-            'title': 'some_title',
-            'imdb_rating': 4.7
-        },
-        {
-            "filmwork_id": film_id2,
-            "roles": [
-                'some_role'
-            ],
-            'title': 'some_title',
-            'imdb_rating': 4.7
-        },
-        ]
-    }]
-    await es_write_data(es_data, es_index)
-    url = f'http://{test_settings.FASTAPI_HOST}:{test_settings.FASTAPI_PORT}/api/v1/persons/{person_id}/films'
+    await es_write_data([data[0]], ES_INDEX)
+
+    url = base_url + f'{data[0]["id"]}/films'
     body, headers, status = await get_data_from_api(url)
 
     assert status == HTTPStatus.OK
-    assert len(body["items"]) == len(es_data[0]['films'])
+    assert len(body["items"]) == len(data[0]['films'])

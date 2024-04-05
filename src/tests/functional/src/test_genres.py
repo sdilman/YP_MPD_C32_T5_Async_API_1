@@ -11,9 +11,9 @@ from tests.functional.settings import test_settings
 ES_INDEX = 'genres'
 data_len = random.randint(1, 100)
 data = [{
-    'id': str(uuid.uuid4()),
-    'name': ''.join(random.choices(string.ascii_letters, k=5)),
-} for _ in range(data_len)]
+        'id': str(uuid.uuid4()),
+        'name': ''.join(random.choices(string.ascii_letters, k=5)),
+        } for _ in range(data_len)]
 base_url = f'http://{test_settings.FASTAPI_HOST}:{test_settings.FASTAPI_PORT}/api/v1/{ES_INDEX}/'
 
 @pytest.mark.asyncio
