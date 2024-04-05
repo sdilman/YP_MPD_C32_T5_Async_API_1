@@ -1,11 +1,9 @@
 import random
-import uuid
-import pytest
 import string
-import random
-
+import uuid
 from http import HTTPStatus
 
+import pytest
 from tests.functional.settings import test_settings
 
 
@@ -24,6 +22,7 @@ data = [{
         } for _ in range(data_len)]
 base_url = f'http://{test_settings.FASTAPI_HOST}:{test_settings.FASTAPI_PORT}/api/v1/{ES_INDEX}/'
 
+
 @pytest.mark.asyncio
 async def test_get_by_id(es_write_data, get_data_from_api):
     await es_write_data([data[0]], ES_INDEX)
@@ -34,6 +33,7 @@ async def test_get_by_id(es_write_data, get_data_from_api):
     assert status == HTTPStatus.OK
     assert body["uuid"] == data[0]["id"]
 
+
 @pytest.mark.asyncio
 async def test_get_by_id_not_found(es_write_data, get_data_from_api):
     await es_write_data([data[0]], ES_INDEX)
@@ -43,6 +43,7 @@ async def test_get_by_id_not_found(es_write_data, get_data_from_api):
 
     assert status == HTTPStatus.NOT_FOUND
     assert body["detail"] == 'person not found'
+
 
 @pytest.mark.asyncio
 async def test_get_by_id_from_cache(redis_client, es_write_data, get_data_from_api, es_delete_data):
@@ -55,6 +56,7 @@ async def test_get_by_id_from_cache(redis_client, es_write_data, get_data_from_a
 
     assert status == HTTPStatus.OK
     assert body["uuid"] == data[0]["id"]
+
 
 @pytest.mark.asyncio
 async def test_search(es_write_data, get_data_from_api, es_delete_data):
@@ -93,6 +95,7 @@ async def test_search(es_write_data, get_data_from_api, es_delete_data):
 
     assert status == HTTPStatus.OK
     assert len(body) == 1
+
 
 @pytest.mark.asyncio
 async def test_films_by_person(es_write_data, get_data_from_api, es_delete_data):

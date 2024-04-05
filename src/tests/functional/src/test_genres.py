@@ -1,12 +1,10 @@
-import uuid
-import pytest
-import string
 import random
-
+import string
+import uuid
 from http import HTTPStatus
 
+import pytest
 from tests.functional.settings import test_settings
-
 
 ES_INDEX = 'genres'
 data_len = random.randint(1, 100)
@@ -15,6 +13,7 @@ data = [{
         'name': ''.join(random.choices(string.ascii_letters, k=5)),
         } for _ in range(data_len)]
 base_url = f'http://{test_settings.FASTAPI_HOST}:{test_settings.FASTAPI_PORT}/api/v1/{ES_INDEX}/'
+
 
 @pytest.mark.asyncio
 async def test_list(es_write_data, get_list_data_from_api):
@@ -26,6 +25,7 @@ async def test_list(es_write_data, get_list_data_from_api):
     assert status == HTTPStatus.OK
     assert len(body['items']) == data_len
 
+
 @pytest.mark.asyncio
 async def test_get_by_id(es_write_data, get_data_from_api):
     await es_write_data([data[0]], ES_INDEX)
@@ -36,6 +36,7 @@ async def test_get_by_id(es_write_data, get_data_from_api):
     assert status == HTTPStatus.OK
     assert body['id'] == data[0]['id']
 
+
 @pytest.mark.asyncio
 async def test_get_by_id_not_found(es_write_data, get_data_from_api):
     await es_write_data([data[0]], ES_INDEX)
@@ -45,6 +46,7 @@ async def test_get_by_id_not_found(es_write_data, get_data_from_api):
 
     assert status == HTTPStatus.NOT_FOUND
     assert body['detail'] == 'genre not found'
+
 
 @pytest.mark.asyncio
 async def test_get_by_id_from_cache(redis_client, es_write_data, get_data_from_api, es_delete_data):
