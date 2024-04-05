@@ -1,51 +1,62 @@
+import random
+import string
 import uuid
-import pytest
-import time
-
 from http import HTTPStatus
 
+import pytest
 from tests.functional.settings import test_settings
 
+ES_INDEX = 'genres'
+data_len = random.randint(1, 100)
+data = [{
+        'id': str(uuid.uuid4()),
+        'name': ''.join(random.choices(string.ascii_letters, k=5)),
+        } for _ in range(data_len)]
+base_url = f'http://{test_settings.FASTAPI_HOST}:{test_settings.FASTAPI_PORT}/api/v1/{ES_INDEX}/'
 
-es_index = 'genres'
 
 @pytest.mark.asyncio
-async def test_list(http_session, es_write_data, get_data_from_api):
-    # 1. Генерируем данные для ES
-    es_data = [{
-        'id': str(uuid.uuid4()),
-        'name': 'some_name',
-    } for _ in range(50)]
+async def test_list(es_write_data, get_list_data_from_api):
+    await es_write_data(data, ES_INDEX)
 
-    await es_write_data(es_data, es_index)
+    url = base_url + f'?size={data_len}'
+    body, headers, status = await get_list_data_from_api(url)
 
-    # 3. Запрашиваем данные из ES по API
-    time.sleep(3)
-    url = f'http://{test_settings.FASTAPI_HOST}:{test_settings.FASTAPI_PORT}/api/v1/genres'
+    assert status == HTTPStatus.OK
+    assert len(body['items']) == data_len
+
+
+@pytest.mark.asyncio
+async def test_get_by_id(es_write_data, get_data_from_api):
+    await es_write_data([data[0]], ES_INDEX)
+
+    url = base_url + f'{data[0]["id"]}'
     body, headers, status = await get_data_from_api(url)
 
-    # 4. Проверяем ответ
     assert status == HTTPStatus.OK
-    assert len(body["items"]) == 50
+    assert body['id'] == data[0]['id']
 
 
-# @pytest.mark.asyncio
-# async def test_get_by_id(http_session, es_write_data, get_data_from_api):
-#     # 1. Генерируем данные для ES
-#     genre_id = str(uuid.uuid4())
-#     es_data = [{
-#         'id': genre_id,
-#         'name': 'some_name',
-#     }]
-#
-#     await es_write_data(es_data, es_index)
-#
-#     # 3. Запрашиваем данные из ES по API
-#     time.sleep(3)
-#
-#     url = f'http://{test_settings.FASTAPI_HOST}:{test_settings.FASTAPI_PORT}/api/v1/genres/{genre_id}'
-#     body, headers, status = await get_data_from_api(url)
-#
-#     # 4. Проверяем ответ
-#     assert status == HTTPStatus.OK
-#     assert body["id"] == genre_id
+@pytest.mark.asyncio
+async def test_get_by_id_not_found(es_write_data, get_data_from_api):
+    await es_write_data([data[0]], ES_INDEX)
+
+    url = base_url + f'{str(uuid.uuid4())}'
+    body, headers, status = await get_data_from_api(url)
+
+    assert status == HTTPStatus.NOT_FOUND
+    assert body['detail'] == 'genre not found'
+
+
+@pytest.mark.asyncio
+async def test_get_by_id_from_cache(redis_client, es_write_data, get_data_from_api, es_delete_data):
+    await es_write_data([data[0]], ES_INDEX)
+
+    url = base_url + f'{data[0]["id"]}'
+    await get_data_from_api(url)
+    await es_delete_data(ES_INDEX)
+    body, headers, status = await get_data_from_api(url)
+
+    assert status == HTTPStatus.OK
+    assert body['id'] == data[0]['id']
+    assert body['name'] == data[0]['name']
