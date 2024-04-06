@@ -3,13 +3,13 @@ import os
 import time
 
 import requests
-from dotenv import load_dotenv
 
-load_dotenv()
+from settings import test_settings
+
 
 if __name__ == '__main__':
-    url = f"http://{os.environ.get('FASTAPI_HOST')}:" \
-          f"{os.environ.get('FASTAPI_PORT')}/api/v1/health/check"
+    url = f"http://{test_settings.FASTAPI_HOST}:" \
+          f"{test_settings.FASTAPI_PORT}/api/v1/health/check"
     while True:
         response = requests.get(url)
         if response.status_code == http.HTTPStatus.OK:

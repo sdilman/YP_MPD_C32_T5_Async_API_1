@@ -1,14 +1,14 @@
 import os
 import time
 
-from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
 
-load_dotenv()
+from settings import test_settings
+
 
 if __name__ == '__main__':
-    es_client = Elasticsearch(hosts=f"http://{os.environ.get('ELASTIC_HOST')}:"
-                                    f"{os.environ.get('ELASTIC_PORT')}")
+    hosts = f"http://{test_settings.ELASTIC_HOST}:{test_settings.ELASTIC_PORT}"
+    es_client = Elasticsearch(hosts=hosts)
     while True:
         if es_client.ping():
             break
