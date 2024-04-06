@@ -50,12 +50,11 @@ async def test_films_search_query_sort(http_session, es_write_data, get_list_dat
     url = f'http://{test_settings.FASTAPI_HOST}:{test_settings.FASTAPI_PORT}' \
           f'/api/v1/films/?sort={sort_term}&page=1&size=50'
     res, headers, status = await get_list_data_from_api(url)
-    data_sorted = sorted(test_films_search_data, key=lambda x: x['imdb_rating'], reverse=True)
-
+    
     assert status == HTTPStatus.OK
-    assert len(res) == len(data_sorted)
-    res[0]['imdb_rating'] == data_sorted[0]['imdb_rating']
-    res[1]['imdb_rating'] == data_sorted[1]['imdb_rating']
+    assert len(res) == len(test_films_search_data)
+    res[0]['imdb_rating'] == 9.0
+    res[1]['imdb_rating'] == 6.5
 
 @pytest.mark.asyncio
 async def test_films_search_query_genre(http_session, es_write_data, get_list_data_from_api, test_films_search_data):
