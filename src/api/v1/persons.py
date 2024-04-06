@@ -3,7 +3,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
-from services.person import PersonService, get_person_service
+from services.person import PersonService, get_person_service, Pagination
 from fastapi_pagination import Page, paginate
 
 router = APIRouter()
@@ -25,10 +25,9 @@ class SPersonSearch(BaseModel):
             response_model_by_alias=False,
             description="Search by person")
 async def search_person(phrase: str,
-                        page: int = Query(ge=1, default=1),
-                        size: int = Query(ge=1, default=10),
+                        pagination: Pagination = Depends(),
                         person_service: PersonService = Depends(get_person_service)):
-    persons = await person_service.get_by_search(phrase, page, size)
+    persons = await person_service.get_by_search(phrase, pagination.page, pagination.size)
     if not persons:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail='persons not found')
     return persons

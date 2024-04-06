@@ -1,15 +1,18 @@
-import os
-import time
-
-from dotenv import load_dotenv
+import sys
+from os.path import dirname, abspath, join
+sys.path.append(abspath(join(dirname(__file__), "../../..")))
+from helper import backoff_exception
 from elasticsearch import Elasticsearch
+from tests.functional.settings import test_settings
 
-load_dotenv()
+
+@backoff_exception
+def run():
+    hosts = f"http://{test_settings.ELASTIC_HOST}:{test_settings.ELASTIC_PORT}"
+    es_client = Elasticsearch(hosts=hosts)
+    if not es_client.ping():
+        raise ValueError('Неверный код ответа')
+
 
 if __name__ == '__main__':
-    es_client = Elasticsearch(hosts=f"http://{os.environ.get('ELASTIC_HOST')}:"
-                                    f"{os.environ.get('ELASTIC_PORT')}")
-    while True:
-        if es_client.ping():
-            break
-        time.sleep(1)
+    run()
