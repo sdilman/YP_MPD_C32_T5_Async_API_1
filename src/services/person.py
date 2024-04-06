@@ -1,5 +1,6 @@
 import pickle
 from functools import lru_cache
+from pydantic import BaseModel
 
 from db.elastic import get_elastic
 from db.redis import get_redis
@@ -89,3 +90,8 @@ def get_person_service(
         elastic: AsyncElasticsearch = Depends(get_elastic),
 ) -> PersonService:
     return PersonService(redis, elastic)
+
+
+class Pagination(BaseModel):
+    page: int = 1
+    size: int = 50

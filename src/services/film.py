@@ -2,9 +2,10 @@ from functools import lru_cache
 from typing import Optional, List
 import pickle
 import logging
+from pydantic import BaseModel
 
 from elasticsearch import AsyncElasticsearch, NotFoundError
-from fastapi import Depends
+from fastapi import Depends, Query
 from redis.asyncio import Redis
 
 from db.elastic import get_elastic
@@ -213,3 +214,8 @@ def get_film_service(
         elastic: AsyncElasticsearch = Depends(get_elastic),
 ) -> FilmService:
     return FilmService(redis, elastic)
+
+class Pagination(BaseModel):
+    page: int = 1
+    size: int = 50
+
