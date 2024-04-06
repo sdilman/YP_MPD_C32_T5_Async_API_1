@@ -1,6 +1,9 @@
+import sys
+from os.path import dirname, abspath, join
+sys.path.append(abspath(join(dirname(__file__), "../..")))
 from helper import backoff_exception
 from redis.asyncio import Redis
-from ..settings import test_settings
+from tests.functional.settings import test_settings
 
 
 @backoff_exception
