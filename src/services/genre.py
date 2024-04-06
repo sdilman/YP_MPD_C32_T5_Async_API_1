@@ -7,13 +7,14 @@ from elasticsearch import AsyncElasticsearch, NotFoundError
 from fastapi import Depends
 from models.movies import Genre
 from redis.asyncio import Redis
+from .helper import AsyncCache
 
 GENRE_CACHE_EXPIRE_IN_SECONDS = 60 * 5
 
 
 class GenreService:
-    def __init__(self, redis: Redis, elastic: AsyncElasticsearch):
-        self.redis = redis
+    def __init__(self, elastic: AsyncElasticsearch, cache: AsyncCache):
+        self.cache = cache
         self.elastic = elastic
 
     async def get_by_id(self, genre_id: str) -> Genre | None:
@@ -34,14 +35,14 @@ class GenreService:
         return Genre(**doc['_source'])
 
     async def _genre_from_cache(self, key: str) -> Genre | None:
-        data = await self.redis.get(key)
+        data = await self.cache.get(key)
         if not data:
             return None
 
         return pickle.loads(data)
 
     async def _put_genre_to_cache(self, key, genre: Genre):
-        await self.redis.set(str(key), pickle.dumps(genre), GENRE_CACHE_EXPIRE_IN_SECONDS)
+        await self.cache.set(str(key), pickle.dumps(genre), GENRE_CACHE_EXPIRE_IN_SECONDS)
 
     async def get_all_from_elastic(self) -> list[Genre] | None:
         try:
@@ -70,7 +71,7 @@ class GenreService:
 
 @lru_cache()
 def get_genre_service(
-        redis: Redis = Depends(get_redis),
+        cache: AsyncCache = Depends(get_redis),
         elastic: AsyncElasticsearch = Depends(get_elastic),
 ) -> GenreService:
-    return GenreService(redis, elastic)
+    return GenreService(elastic, cache)

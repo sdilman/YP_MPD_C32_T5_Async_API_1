@@ -8,13 +8,14 @@ from elasticsearch import AsyncElasticsearch, NotFoundError
 from fastapi import Depends
 from models.movies import FilmsWithPerson, Person
 from redis.asyncio import Redis
+from .helper import AsyncCache
 
 PERSON_CACHE_EXPIRE_IN_SECONDS = 60 * 5
 
 
 class PersonService:
-    def __init__(self, redis: Redis, elastic: AsyncElasticsearch):
-        self.redis = redis
+    def __init__(self, elastic: AsyncElasticsearch, cache: AsyncCache):
+        self.cache = cache
         self.elastic = elastic
 
     async def get_by_id(self, person_id: str) -> Person | None:
@@ -35,13 +36,13 @@ class PersonService:
         return Person(**doc['_source'])
 
     async def _person_from_cache(self, key: str) -> Person | list[Person] | None:
-        data = await self.redis.get(key)
+        data = await self.cache.get(key)
         if not data:
             return None
         return pickle.loads(data)
 
     async def _put_person_to_cache(self, key, person: Person):
-        await self.redis.set(str(key), pickle.dumps(person), PERSON_CACHE_EXPIRE_IN_SECONDS)
+        await self.cache.set(str(key), pickle.dumps(person), PERSON_CACHE_EXPIRE_IN_SECONDS)
 
     async def _search_person_from_elastic(self, phrase: str, page: int, size: int) -> list[Person] | None:
         try:
@@ -86,10 +87,10 @@ class PersonService:
 
 @lru_cache()
 def get_person_service(
-        redis: Redis = Depends(get_redis),
+        cache: AsyncCache = Depends(get_redis),
         elastic: AsyncElasticsearch = Depends(get_elastic),
 ) -> PersonService:
-    return PersonService(redis, elastic)
+    return PersonService(elastic, cache)
 
 
 class Pagination(BaseModel):

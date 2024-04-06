@@ -11,17 +11,18 @@ from redis.asyncio import Redis
 from db.elastic import get_elastic
 from db.redis import get_redis
 from models.movies import Film
+from .helper import AsyncCache
 
 FILM_CACHE_EXPIRE_IN_SECONDS = 60 * 5  # 5 минут
 
 
 class FilmService:
-    def __init__(self, redis: Redis, elastic: AsyncElasticsearch):
-        self.redis = redis
+    def __init__(self, elastic: AsyncElasticsearch, cache: AsyncCache):
+        self.cache = cache
         self.elastic = elastic
 
     async def get_by_id(self, film_id: str) -> Optional[Film]:
-        key = self.redis_key('film_get_by_id', film_id)
+        key = self.cache_key('film_get_by_id', film_id)
         film = await self._film_from_cache(film_id) # TODO: update key
         if not film:
             film = await self._get_film_from_elastic(film_id)
@@ -31,7 +32,7 @@ class FilmService:
         return film
 
     async def get(self, genre: str, title: str, page: int, size: int) -> Optional[List[Film]]:
-        key = self.redis_key('film_get', genre, title, page, size)
+        key = self.cache_key('film_get', genre, title, page, size)
         films = await self._films_from_cache(key)
         if not films:
             films = await self._get_films_from_elastic(genre, title, page, size)
@@ -41,7 +42,7 @@ class FilmService:
         return films
 
     async def get_by_search(self, phrase: str, page: int, size: int) -> Optional[List[Film]]:
-        key = self.redis_key('film_get_by_search', phrase, page, size)
+        key = self.cache_key('film_get_by_search', phrase, page, size)
         films = await self._films_from_cache(key)
         if not films:
             films = await self._search_films_from_elastic(phrase, page, size)
@@ -183,25 +184,25 @@ class FilmService:
         return res
 
     async def _film_from_cache(self, key: str) -> Optional[Film]:
-        data = await self.redis.get(key)
+        data = await self.cache.get(key)
         if not data:
             return None
         film = Film.parse_raw(data)
         return film
 
     async def _films_from_cache(self, key: str) -> Optional[List[Film]]:
-        data = await self.redis.get(key)
+        data = await self.cache.get(key)
         if not data:
             return None
         return pickle.loads(data)
 
     async def _put_film_to_cache(self, key: str, film: Film):  # TODO: update key
-        await self.redis.set(key, film.json(), FILM_CACHE_EXPIRE_IN_SECONDS)
+        await self.cache.set(key, film.json(), FILM_CACHE_EXPIRE_IN_SECONDS)
 
     async def _put_films_to_cache(self, key: str, films: List[Film]):  # TODO: update key
-        await self.redis.set(key, pickle.dumps(films), FILM_CACHE_EXPIRE_IN_SECONDS)
+        await self.cache.set(key, pickle.dumps(films), FILM_CACHE_EXPIRE_IN_SECONDS)
 
-    def redis_key(self, key_base:str, *args):
+    def cache_key(self, key_base:str, *args):
         res = key_base
         for arg in args:
             if arg is not None:
@@ -210,10 +211,10 @@ class FilmService:
 
 @lru_cache()
 def get_film_service(
-        redis: Redis = Depends(get_redis),
+        cache: AsyncCache = Depends(get_redis),
         elastic: AsyncElasticsearch = Depends(get_elastic),
 ) -> FilmService:
-    return FilmService(redis, elastic)
+    return FilmService(elastic, cache)
 
 class Pagination(BaseModel):
     page: int = 1
