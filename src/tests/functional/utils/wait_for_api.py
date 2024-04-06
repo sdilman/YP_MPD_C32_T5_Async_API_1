@@ -1,6 +1,6 @@
 import sys
 from os.path import dirname, abspath, join
-sys.path.append(abspath(join(dirname(__file__), "../..")))
+sys.path.append(abspath(join(dirname(__file__), "../../..")))
 import http
 import requests
 from helper import backoff_exception

@@ -1,6 +1,6 @@
 import sys
 from os.path import dirname, abspath, join
-sys.path.append(abspath(join(dirname(__file__), "../..")))
+sys.path.append(abspath(join(dirname(__file__), "../../..")))
 from helper import backoff_exception
 from elasticsearch import Elasticsearch
 from tests.functional.settings import test_settings
