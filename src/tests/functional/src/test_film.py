@@ -25,7 +25,6 @@ def test_films_search_data():
 async def test_films_search_query_present(http_session, es_write_data, get_list_data_from_api, test_films_search_data):
     await es_write_data(test_films_search_data, es_index)
     query = "wow"
-    time.sleep(3)
     url = f'http://{test_settings.FASTAPI_HOST}:{test_settings.FASTAPI_PORT}' \
           f'/api/v1/films/?query={query}&page=1&size=50'
     res, headers, status = await get_list_data_from_api(url)
@@ -37,7 +36,6 @@ async def test_films_search_query_present(http_session, es_write_data, get_list_
 async def test_films_search_query_missing(http_session, es_write_data, get_list_data_from_api, test_films_search_data):
     await es_write_data(test_films_search_data, es_index)
     query = "great"
-    time.sleep(3)
     url = f'http://{test_settings.FASTAPI_HOST}:{test_settings.FASTAPI_PORT}' \
           f'/api/v1/films/?query={query}&page=1&size=50'
     res, headers, status = await get_list_data_from_api(url)
@@ -49,7 +47,6 @@ async def test_films_search_query_missing(http_session, es_write_data, get_list_
 async def test_films_search_query_sort(http_session, es_write_data, get_list_data_from_api, test_films_search_data):
     await es_write_data(test_films_search_data, es_index)
     sort_term = "-imdb_rating"
-    time.sleep(3)
     url = f'http://{test_settings.FASTAPI_HOST}:{test_settings.FASTAPI_PORT}' \
           f'/api/v1/films/?sort={sort_term}&page=1&size=50'
     res, headers, status = await get_list_data_from_api(url)
@@ -64,7 +61,6 @@ async def test_films_search_query_sort(http_session, es_write_data, get_list_dat
 async def test_films_search_query_genre(http_session, es_write_data, get_list_data_from_api, test_films_search_data):
     await es_write_data(test_films_search_data, es_index)
     genre = "Documentary"
-    time.sleep(3)
     url = f'http://{test_settings.FASTAPI_HOST}:{test_settings.FASTAPI_PORT}' \
           f'/api/v1/films/?genre={genre}&page=1&size=50'
     res, headers, status = await get_list_data_from_api(url)
@@ -76,7 +72,6 @@ async def test_films_search_query_genre(http_session, es_write_data, get_list_da
 async def test_films_search_id(http_session, es_write_data, get_data_from_api, test_films_search_data):
     await es_write_data(test_films_search_data, es_index)
     film_id = test_films_search_data[0]['id']
-    time.sleep(3)
     url = f'http://{test_settings.FASTAPI_HOST}:{test_settings.FASTAPI_PORT}' \
           f'/api/v1/films/{film_id}'
     body, headers, status = await get_data_from_api(url)
@@ -88,7 +83,6 @@ async def test_films_search_id(http_session, es_write_data, get_data_from_api, t
 async def test_films_search_title(http_session, es_write_data, get_list_data_from_api, test_films_search_data):
     await es_write_data(test_films_search_data, es_index)
     phrase = 'movie'
-    time.sleep(3)
     url = f'http://{test_settings.FASTAPI_HOST}:{test_settings.FASTAPI_PORT}' \
           f'/api/v1/films/search?phrase={phrase}&page=1&size=50'
     res, headers, status = await get_list_data_from_api(url)
